@@ -2,10 +2,10 @@
 
 export default function VideoGenerator({
   onGenerate,
-  videoUrl,
+  videoUrls,
 }: {
   onGenerate: () => void;
-  videoUrl: string;
+  videoUrls: string[];
 }) {
   return (
     <div className="space-y-4">
@@ -13,9 +13,11 @@ export default function VideoGenerator({
         onClick={onGenerate}
         className="w-full px-4 py-2 bg-purple-600 text-white rounded"
       >
-        Generate Video
+        Generate Videos
       </button>
-      {videoUrl && <p className="text-center">Your video is ready above!</p>}
+      {videoUrls.length > 0 && (
+        <p className="text-center">Your videos are ready below!</p>
+      )}
     </div>
   );
 }
