@@ -9,18 +9,15 @@ import { Readable } from "stream";
 import { sanitizeSasUrl } from "@/app/utils/azure";
 
 export async function POST(req: NextRequest) {
-  const { script, voiceId, images } = await req.json();
-  console.log("Received request with script:", script);
+  const { script, scripts, voiceId, voiceIds, images } = await req.json();
+  const scriptList = scripts ?? (script ? [script] : []);
+  const voiceList = voiceIds ?? (voiceId ? [voiceId] : []);
+
+  console.log("Received request with scripts:", scriptList);
 
   const dir = path.join(process.cwd(), "public", "output");
   await fs.mkdir(dir, { recursive: true });
 
-  const audioPath =
-    "D:\\projects\\video-gen\\public\\output\\1750162485212-CYw3kZ02Hs0563khs1Fj.mp3";
-  // const audioPath = path.join(dir, `${Date.now()}-${voiceId}.mp3`);
-  // const audioBuf = await synthesize(voiceId, script);
-  // console.log("Audio buffer length:", audioPath, audioBuf.length);
-  // await fs.writeFile(audioPath, audioBuf);
 
   const imagePaths: string[] = [];
   for (const url of images) {
@@ -75,12 +72,23 @@ export async function POST(req: NextRequest) {
   }
 
   console.log("Image pathsssss:", imagePaths);
-  const outPath = path.join(dir, `${Date.now()}-${voiceId}.mp4`);
-  await createVideo({ audioPath, imagePaths, outPath });
-  console.log("Video created at:", outPath);
 
-  // const relPath = outPath.replace(process.cwd() + "/public", "");
-  const fileName = path.basename(outPath); // e.g. "1750093…1Xvd.mp4"
-  const publicUrl = `/output/${fileName}`;
-  return NextResponse.json({ url: publicUrl });
+  const urls: string[] = [];
+  for (const scr of scriptList) {
+    for (const vid of voiceList) {
+      const audioPath = path.join(dir, `${Date.now()}-${vid}.mp3`);
+      const audioBuf = await synthesize(vid, scr);
+      console.log("Audio buffer length:", audioPath, audioBuf.length);
+      await fs.writeFile(audioPath, audioBuf);
+
+      const outPath = path.join(dir, `${Date.now()}-${vid}.mp4`);
+      await createVideo({ audioPath, imagePaths, outPath });
+      console.log("Video created at:", outPath);
+
+      const fileName = path.basename(outPath);
+      urls.push(`/output/${fileName}`);
+    }
+  }
+
+  return NextResponse.json({ urls });
 }

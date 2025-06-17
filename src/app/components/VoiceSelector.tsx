@@ -10,41 +10,41 @@ interface Voice {
 export default function VoiceSelector({
   onSelect,
 }: {
-  onSelect: (voiceId: string) => void;
+  onSelect: (voiceIds: string[]) => void;
 }) {
   const [voices, setVoices] = useState<Voice[]>([]);
-  const [selected, setSelected] = useState<string>("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    console.log("logg");
-
     fetch("/api/voices")
       .then((res) => res.json())
       .then((data) => setVoices(data.voices));
   }, []);
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    setSelected(e.target.value);
-    onSelect(e.target.value);
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      onSelect(Array.from(next));
+      return next;
+    });
   }
 
   return (
     <div className="space-y-2">
-      <label className="block font-medium">Choose Narration Voice:</label>
-      <select
-        value={selected}
-        onChange={handleChange}
-        className="w-full border p-2 rounded"
-      >
-        <option value="" disabled>
-          Select voice
-        </option>
+      <label className="block font-medium">Choose Narration Voices:</label>
+      <div className="space-y-1">
         {voices.map((v) => (
-          <option className="text-black" key={v.voiceId} value={v.voiceId}>
+          <label key={v.voiceId} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={selected.has(v.voiceId)}
+              onChange={() => toggle(v.voiceId)}
+            />
             {v.name}
-          </option>
+          </label>
         ))}
-      </select>
+      </div>
     </div>
   );
 }
