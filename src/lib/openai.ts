@@ -10,8 +10,11 @@ export async function generateScripts(prompt: string, n: number) {
     messages: [
       {
         role: "system",
-        content:
-          "You are an expert marketing copywriter. Generate concise but compelling marketing video scripts (around 80–120 words) with clear call-to-action.",
+        content: `
+You are an expert marketing copywriter. 
+Generate a single, continuous voice-over script (80–120 words) with a clear call to action.
+Do NOT include any headings, titles, labels, bullets or extra formatting—just the script text itself.
+      `.trim(),
       },
       { role: "user", content: prompt },
     ],

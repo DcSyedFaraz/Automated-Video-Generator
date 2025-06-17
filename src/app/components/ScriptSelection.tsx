@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ScriptSelection({
   scripts,
@@ -10,16 +10,17 @@ export default function ScriptSelection({
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const toggleSelection = (idx: number) => {
-    const newSelected = new Set(selected);
-    if (newSelected.has(idx)) {
-      newSelected.delete(idx);
-    } else {
-      newSelected.add(idx);
-    }
-    setSelected(newSelected);
-    onSelect(Array.from(newSelected).map((i) => scripts[i]));
-  };
+  const toggleSelection = (idx: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next; // functional update – no stale closure
+    });
+
+  /* ✅ Runs exactly once per state change (twice only in React-Strict dev) */
+  useEffect(() => {
+    onSelect(Array.from(selected).map((i) => scripts[i]));
+  }, [selected, scripts, onSelect]);
 
   return (
     <div className="space-y-4">
