@@ -15,6 +15,7 @@ export default function Page() {
   const [stylePreset, setStylePreset] = useState<string>("photorealistic");
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
 
   function handleUseScript(script: string) {
@@ -37,12 +38,25 @@ export default function Page() {
     setSelectedScripts(chosen);
   }, []);
 
-  async function handleGenerateImages(prompt: string, count: number) {
+  async function handleGenerateImages(
+    prompt: string,
+    styleCount: number,
+    baseImage?: File
+  ) {
+    setLoading(true);
+
+    const form = new FormData();
+    form.append("prompt", prompt);
+    form.append("styles", String(styleCount));
+    if (baseImage) {
+      form.append("baseImage", baseImage);
+    }
+
     const res = await fetch("/api/images", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: `${prompt}, ${stylePreset}`, count }),
+      body: form, // ← no JSON header, send FormData
     });
+    setLoading(false);
     const { images } = await res.json();
     setGeneratedImages(images);
     setSelectedImages([]);
@@ -91,8 +105,10 @@ export default function Page() {
           onGenerate={handleGenerateImages}
           images={generatedImages}
           onSelect={setSelectedImages}
+          loading={loading}
         />
       )}
+
 
       {/* Video Generation */}
       <VideoGenerator onGenerate={handleGenerateVideo} videoUrls={videoUrls} />
