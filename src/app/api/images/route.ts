@@ -33,15 +33,20 @@ export async function POST(req: NextRequest) {
     }
 
     /*───────────── generate or edit ─────────────*/
-    const images: string[] = [];
-    for (let i = 0; i < styles; i++) {
-      const urls = tmpPath
-        ? await editImage(upload!, prompt) // ← now expects the path
-        : await generateImage(prompt);
-      if (urls[0]) images.push(urls[0]);
+    const MAX_PER_REQ = 10;
+    const batches: Promise<string[]>[] = [];
+
+    for (let i = 0; i < styles; i += MAX_PER_REQ) {
+      const n = Math.min(MAX_PER_REQ, styles - i);
+      batches.push(
+        tmpPath ? editImage(tmpPath!, prompt, n) : generateImage(prompt, n)
+      );
     }
 
-    if (tmpPath) unlink(tmpPath).catch(() => {}); // clean up
+    const results = await Promise.all(batches);
+    const images = results.flat();
+
+    if (tmpPath) await unlink(tmpPath).catch(() => {}); // clean up
     return NextResponse.json({ images });
   } catch (err: any) {
     console.error("Image route failed:", err);

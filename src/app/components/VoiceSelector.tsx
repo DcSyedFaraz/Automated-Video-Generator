@@ -21,11 +21,15 @@ export default function VoiceSelector({
       .then((data) => setVoices(data.voices));
   }, []);
 
+  useEffect(() => {
+    onSelect([...selected]);
+  }, [selected, onSelect]);
+
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
-      onSelect(Array.from(next));
+      // onSelect(Array.from(next));
       return next;
     });
   }

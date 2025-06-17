@@ -69,7 +69,11 @@ export default function Page() {
     const res = await fetch("/api/videos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scripts: selectedScripts, voiceIds, images: selectedImages }),
+      body: JSON.stringify({
+        scripts: selectedScripts,
+        voiceIds,
+        images: selectedImages,
+      }),
     });
 
     const { urls } = await res.json();
@@ -100,20 +104,22 @@ export default function Page() {
       )}
 
       {/* Image Generation & Selection */}
-      {voiceIds.length > 0 && (
-        <ImageUploader
-          onGenerate={handleGenerateImages}
-          images={generatedImages}
-          onSelect={setSelectedImages}
-          loading={loading}
-        />
-      )}
-
+      <ImageUploader
+        onGenerate={handleGenerateImages}
+        images={generatedImages}
+        onSelect={setSelectedImages}
+        loading={loading}
+      />
+      {/* {voiceIds.length > 0 && (
+      )} */}
 
       {/* Video Generation */}
-      <VideoGenerator onGenerate={handleGenerateVideo} videoUrls={videoUrls} />
-      {/* {selectedImages.length > 0 && (
-      )} */}
+      {selectedImages.length > 0 && (
+        <VideoGenerator
+          onGenerate={handleGenerateVideo}
+          videoUrls={videoUrls}
+        />
+      )}
 
       {/* Output */}
       {videoUrls.length > 0 && (

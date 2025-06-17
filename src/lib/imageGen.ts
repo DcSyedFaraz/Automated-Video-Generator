@@ -1,5 +1,5 @@
 // lib/imageGen.ts
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import fs from "fs";
 import path from "path";
 
@@ -43,7 +43,7 @@ export async function generateImage(prompt: string, n = 1): Promise<string[]> {
  * @param n          How many variants to produce
  */
 export async function editImage(
-  imagePath: File,
+  imagePath: string,
   prompt: string,
   n = 1
 ): Promise<string[]> {
@@ -62,11 +62,15 @@ export async function editImage(
   // );
 
   try {
-    const res = await client.images.edit({
-      model: "dall-e-2",
-      image: imagePath,
-      mask: imagePath,
-      prompt,
+    const file = await toFile(
+      fs.createReadStream(imagePath),
+      path.basename(imagePath),
+      { type: "image/png" }
+    );
+
+    const res = await client.images.createVariation({
+      model: "dall-e-2", // variations still = DALL·E 2
+      image: file,
       n,
       size: "1024x1024",
     });

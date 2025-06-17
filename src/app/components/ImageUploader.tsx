@@ -15,13 +15,16 @@ export default function ImageUploader({
   onSelect,
   loading,
 }: ImageUploaderProps) {
-  const [prompt, setPrompt] = useState<string>("Before-and-after graph overlay on a dramatic transformation shot, with bold text: “From $0 to Viral");
+  const [prompt, setPrompt] = useState<string>(
+    "Before-and-after graph overlay on a dramatic transformation shot, with bold text: “From $0 to Viral"
+  );
   const [styleCount, setStyleCount] = useState<number>(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [baseImage, setBaseImage] = useState<File | null>(null);
   const [baseImagePreview, setBaseImagePreview] = useState<string>("");
   const [promptError, setPromptError] = useState<string>("");
   const [fileError, setFileError] = useState<string>("");
+  const [inputMode, setInputMode] = useState<"prompt" | "image">("prompt");
 
   useEffect(() => {
     if (baseImage) {
@@ -53,15 +56,18 @@ export default function ImageUploader({
 
   function validateInputs(): boolean {
     let valid = true;
-    if (!prompt.trim()) {
-      setPromptError("Please enter a prompt.");
-      valid = false;
+    if (inputMode === "prompt") {
+      if (!prompt.trim()) {
+        setPromptError("Please enter a prompt.");
+        valid = false;
+      } else {
+        setPromptError("");
+      }
     } else {
-      setPromptError("");
-    }
-    if (baseImage && !baseImage.type.startsWith("image/")) {
-      setFileError("Unsupported file type. Please select an image.");
-      valid = false;
+      if (!baseImage) {
+        setFileError("Please select an image.");
+        valid = false;
+      }
     }
     return valid;
   }
@@ -74,35 +80,65 @@ export default function ImageUploader({
 
   return (
     <div className="space-y-4">
-      <textarea
-        rows={2}
-        className="w-full border p-2 rounded"
-        placeholder="Enter image prompt..."
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        onBlur={() => {
-          if (!prompt.trim()) setPromptError("Please enter a prompt.");
-        }}
-      />
-      {promptError && <p className="text-red-600 text-sm">{promptError}</p>}
-
-      <div className="flex flex-col gap-2">
-        <label className="block font-medium">Base Image (optional):</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="border p-1 rounded"
-        />
-        {fileError && <p className="text-red-600 text-sm">{fileError}</p>}
-        {baseImagePreview && (
-          <img
-            src={baseImagePreview}
-            alt="Base Preview"
-            className="max-h-40 rounded border mt-2"
+      <div className="flex items-center gap-4">
+        <label className="flex items-center">
+          <input
+            type="radio"
+            name="inputMode"
+            value="prompt"
+            checked={inputMode === "prompt"}
+            onChange={() => setInputMode("prompt")}
+            className="mr-1"
           />
-        )}
+          Prompt
+        </label>
+        <label className="flex items-center">
+          <input
+            type="radio"
+            name="inputMode"
+            value="image"
+            checked={inputMode === "image"}
+            onChange={() => setInputMode("image")}
+            className="mr-1"
+          />
+          Base Image
+        </label>
       </div>
+      {inputMode === "prompt" ? (
+        <>
+          <textarea
+            rows={2}
+            className="w-full border p-2 rounded"
+            placeholder="Enter image prompt..."
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onBlur={() => {
+              if (!prompt.trim()) setPromptError("Please enter a prompt.");
+            }}
+          />
+          {promptError && <p className="text-red-600 text-sm">{promptError}</p>}
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-2">
+            <label className="block font-medium">Base Image:</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="border p-1 rounded"
+            />
+            {fileError && <p className="text-red-600 text-sm">{fileError}</p>}
+            {baseImagePreview && (
+              <img
+                src={baseImagePreview}
+                alt="Base Preview"
+                className="max-h-40 rounded border mt-2"
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <div className="flex items-center gap-2">
         <label className="block font-medium">Styles:</label>

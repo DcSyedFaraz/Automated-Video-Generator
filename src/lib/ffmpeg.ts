@@ -48,80 +48,186 @@ export async function createVideo(params: {
   enableTransitions?: boolean;
 }) {
   try {
-    const { audioPath, imagePaths, outPath } = params;
-    console.log("🚀 ULTRA FAST mode - maximum speed priority");
+    const { audioPath, imagePaths, outPath, enableTransitions = true } = params;
+    console.log("🎬 Creating professional video with intro/outro");
 
-    // Skip audio duration check for speed - calculate roughly
-    const estimatedDuration = imagePaths.length * 3; // Assume 3 seconds per image
-    const imageDuration = estimatedDuration / imagePaths.length;
+    // Define intro and outro paths
+    const introPath = path.join(process.cwd(), "public", "intro.png");
+    const outroPath = path.join(process.cwd(), "public", "outro.png");
+    const backgroundMusicPath = path.join(process.cwd(), "public", "bg.mp3");
+    const backgroundMusicVolume = 0.2;
+
+    // Check if intro/outro files exist
+    const hasIntro = fs.existsSync(introPath);
+    const hasOutro = fs.existsSync(outroPath);
+    const hasBackgroundMusic = fs.existsSync(backgroundMusicPath);
+
+    if (!hasIntro) console.warn("⚠️ Intro image not found at public/intro.png");
+    if (!hasOutro) console.warn("⚠️ Outro image not found at public/outro.png");
+    if (!hasBackgroundMusic)
+      console.warn("⚠️ Background Music not found at public/bg.mp3");
+
+    // Get actual audio duration for precise timing
+    const audioInfo = await new Promise<number>((resolve, reject) => {
+      ffmpeg.ffprobe(audioPath, (err, metadata) => {
+        if (err) reject(err);
+        else resolve(metadata.format.duration || 0);
+      });
+    });
+
+    console.log(`🎵 Audio duration: ${audioInfo}s`);
+
+    // Calculate timing with debug info
+    const introDuration = hasIntro ? 2 : 0; // 2 seconds intro
+    const outroDuration = hasOutro ? 2 : 0; // 2 seconds outro
+    const mainContentDuration = Math.max(
+      1,
+      audioInfo - introDuration - outroDuration
+    );
+    const imageDuration = Math.max(1, mainContentDuration / imagePaths.length);
 
     console.log(
-      `Estimated ${estimatedDuration}s total, ${imageDuration}s per image`
+      `🎵 Audio: ${audioInfo}s, Intro: ${introDuration}s, Main: ${mainContentDuration}s, Outro: ${outroDuration}s`
+    );
+    console.log(
+      `📸 Images: ${imagePaths.length}, Duration each: ${imageDuration}s`
     );
 
-    // Create minimal concat file
-    const listFile = path.join(path.dirname(outPath), "images.txt");
-    const concatText =
-      imagePaths
-        .map((p: string) => `file '${p}'\nduration ${imageDuration}`)
-        .join("\n") + `\nfile '${imagePaths[imagePaths.length - 1]}'\n`;
-
-    fs.writeFileSync(listFile, concatText);
+    // Build complete image sequence
+    const allImages = [
+      ...(hasIntro ? [{ path: introPath, duration: introDuration }] : []),
+      ...imagePaths.map((path) => ({ path, duration: imageDuration })),
+      ...(hasOutro ? [{ path: outroPath, duration: outroDuration }] : []),
+    ];
 
     return await new Promise<Response>((resolve) => {
-      ffmpeg()
-        .input(listFile)
-        .inputOptions(["-f concat", "-safe 0"])
-        .input(audioPath)
-        .outputOptions([
-          // MAXIMUM SPEED SETTINGS:
-          "-c:v libx264",
-          "-preset superfast", // Even faster than ultrafast for some systems
-          "-tune fastdecode", // Optimize for fast decoding
-          "-crf 28", // Lower quality but very fast
-          "-c:a copy", // Copy audio without re-encoding (fastest)
+      // Create video with crossfade transitions using complex filter
+      let command = ffmpeg();
 
-          // MINIMAL PROCESSING:
-          "-vf",
-          "scale=480:854", // Small resolution (480p) for speed
-          "-r 20", // Low framerate
+      // Track input indices for proper referencing
+      let inputIndex = 0;
+      const audioInputIndex = inputIndex++;
+      const backgroundMusicIndex = hasBackgroundMusic ? inputIndex++ : -1;
+      const firstImageIndex = inputIndex;
+
+      // Add audio input FIRST (important for ffmpeg input ordering)
+      command = command.input(audioPath);
+
+      // Add background music if provided
+      if (hasBackgroundMusic) {
+        command = command.input(backgroundMusicPath);
+      }
+
+      // Add all image inputs
+      allImages.forEach((img) => {
+        command = command
+          .input(img.path)
+          .inputOptions(["-loop 1", `-t ${img.duration}`]);
+        inputIndex++;
+      });
+
+      // Build complete filter complex string
+      let filterParts: string[] = [];
+
+      // Scale and format all video inputs first
+      allImages.forEach((img, i) => {
+        const videoInputIndex = firstImageIndex + i;
+        filterParts.push(
+          `[${videoInputIndex}:v]scale=480:854:force_original_aspect_ratio=decrease,pad=480:854:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=20[v${i}]`
+        );
+      });
+
+      // Create crossfade transitions between all images
+      let currentLabel = "";
+      if (allImages.length > 1) {
+        currentLabel = "v0";
+        let cumulativeTime = 0;
+
+        for (let i = 1; i < allImages.length; i++) {
+          const nextLabel = i === allImages.length - 1 ? "vout" : `tmp${i}`;
+          // Calculate offset: when to start the crossfade (0.5s before current image ends)
+          cumulativeTime += allImages[i - 1].duration;
+          const offset = Math.max(0, cumulativeTime - 0.5);
+
+          console.log(`Crossfade ${i}: offset=${offset}s, duration=0.5s`);
+          filterParts.push(
+            `[${currentLabel}][v${i}]xfade=transition=fade:duration=0.5:offset=${offset}[${nextLabel}]`
+          );
+          currentLabel = nextLabel;
+        }
+      } else {
+        filterParts.push(`[v0]copy[vout]`);
+      }
+
+      // Build audio filter for mixing main audio with background music
+      if (hasBackgroundMusic) {
+        // Mix main audio with background music
+        filterParts.push(
+          `[${backgroundMusicIndex}:a]aloop=loop=-1:size=2e+09,volume=${backgroundMusicVolume}[bg]`
+        );
+        filterParts.push(
+          `[${audioInputIndex}:a][bg]amix=inputs=2:duration=shortest:dropout_transition=2[aout]`
+        );
+      } else {
+        // Just process the main audio
+        filterParts.push(
+          `[${audioInputIndex}:a]acompressor=threshold=0.1:ratio=4:attack=5:release=50,loudnorm=I=-16:TP=-1.5:LRA=11[aout]`
+        );
+      }
+
+      // Join all filter parts with semicolons
+      const completeFilter = filterParts.join(";");
+
+      console.log("Complete filter:", completeFilter);
+
+      command
+        .complexFilter(completeFilter, ["vout", "aout"])
+        .outputOptions([
+          // Fast video encoding
+          "-c:v libx264",
+          "-preset ultrafast",
+          "-crf 28",
           "-pix_fmt yuv420p",
 
-          // NO FANCY OPTIONS:
+          // Audio processing
+          "-c:a aac",
+          "-b:a 128k",
+          "-ar 44100",
+
+          // Optimization
           "-movflags +faststart",
           "-threads 0",
-          "-shortest", // Stop when shortest stream ends
         ])
         .save(outPath)
-        .on("start", () => {
-          console.log("🚀 Ultra-fast encoding started...");
+        .on("start", (commandLine) => {
+          console.log("🚀 Fast encoding started...");
+          console.log("FFmpeg command:", commandLine);
         })
         .on("progress", (progress) => {
-          // Minimal logging for speed
-          if (progress.percent && progress.percent % 25 === 0) {
-            console.log(`⚡ ${Math.round(progress.percent)}%`);
+          if (progress.percent) {
+            console.log(`🎥 Progress: ${Math.round(progress.percent)}%`);
           }
         })
         .on("end", () => {
-          try {
-            fs.unlinkSync(listFile);
-          } catch (e) {
-            /* ignore */
-          }
-          console.log("⚡ Ultra-fast video completed!");
+          console.log("⚡ Fast video with transitions completed!");
           resolve(
             new Response(
               JSON.stringify({
                 success: true,
-                resolution: "854x480",
-                mode: "ultra_fast",
+                resolution: "480x854",
+                mode: "fast_with_transitions",
+                features: {
+                  intro: hasIntro,
+                  outro: hasOutro,
+                  audioEffects: true,
+                },
               }),
               { status: 200 }
             )
           );
         })
         .on("error", (err: Error) => {
-          console.error("❌ Error:", err.message);
+          console.error("❌ Encoding error:", err.message);
           resolve(
             new Response(JSON.stringify({ error: err.message }), {
               status: 500,
@@ -130,7 +236,7 @@ export async function createVideo(params: {
         });
     });
   } catch (err: any) {
-    console.error("Ultra-fast video failed:", err);
+    console.error("Video creation failed:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
     });
