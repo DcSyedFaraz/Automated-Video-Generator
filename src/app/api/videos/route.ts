@@ -19,12 +19,12 @@ export async function POST(req: NextRequest) {
   await fs.mkdir(dir, { recursive: true });
 
   const imagePaths: string[] = [
-    "D:\\projects\\video-gen\\public\\output\\1750183792347-513056.png",
-    "D:\\projects\\video-gen\\public\\output\\1750183807253-428715.png",
-    "D:\\projects\\video-gen\\public\\output\\1750183810210-520426.png",
-    "D:\\projects\\video-gen\\public\\output\\1750183816450-111684.png",
-    "D:\\projects\\video-gen\\public\\output\\1750183849859-93102.png",
-  ];
+  'D:\\projects\\video-gen\\public\\output\\1750252666231-332014.png',
+  'D:\\projects\\video-gen\\public\\output\\1750252668576-747595.png',
+  'D:\\projects\\video-gen\\public\\output\\1750252669694-123949.png',
+  'D:\\projects\\video-gen\\public\\output\\1750252671069-29292.png',
+  'D:\\projects\\video-gen\\public\\output\\1750252672974-50032.png'
+];
   // const imagePaths: string[] = [];
   // for (const url of images) {
   //   console.log(`Processing image URL: ${url}`);
@@ -81,16 +81,19 @@ export async function POST(req: NextRequest) {
 
   const urls: string[] = [];
   for (const scr of scriptList) {
+    console.log("Processing script:",scr, "with voices:", voiceList);
     for (const vid of voiceList) {
+      
       const audioPath = path.join(
         dir,
-        "1750183271439-29vD33N1CtxCmqQRPOHJ.mp3"
+        "1750162485212-CYw3kZ02Hs0563khs1Fj.mp3"
       );
 
       // const audioPath = path.join(dir, `${Date.now()}-${vid}.mp3`);
       // const audioBuf = await synthesize(vid, scr);
       // console.log("Audio buffer length:", audioPath, audioBuf.length);
       // await fs.writeFile(audioPath, audioBuf);
+      console.log("Audio path:", audioPath);
 
       const outPath = path.join(dir, `${Date.now()}-${vid}.mp4`);
       await createVideo({ audioPath, imagePaths, outPath });

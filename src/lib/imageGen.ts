@@ -25,7 +25,7 @@ function fileBuilder(filePath: string) {
  */
 export async function generateImage(prompt: string, n = 1): Promise<string[]> {
   const res = await client.images.generate({
-    model: "dall-e-3",
+    model: "dall-e-2",
     prompt,
     n,
     size: "1024x1024",

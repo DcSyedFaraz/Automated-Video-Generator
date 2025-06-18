@@ -63,8 +63,8 @@ export default function Page() {
   }
 
   async function handleGenerateVideo() {
-    if (!selectedScripts.length || !voiceIds.length || !selectedImages.length)
-      return;
+    // if (!selectedScripts.length || !voiceIds.length || !selectedImages.length)
+    //   return;
 
     const res = await fetch("/api/videos", {
       method: "POST",
@@ -114,12 +114,12 @@ export default function Page() {
       )} */}
 
       {/* Video Generation */}
-      {selectedImages.length > 0 && (
-        <VideoGenerator
-          onGenerate={handleGenerateVideo}
-          videoUrls={videoUrls}
-        />
-      )}
+      <VideoGenerator
+        onGenerate={handleGenerateVideo}
+        videoUrls={videoUrls}
+      />
+      {/* {selectedImages.length > 0 && (
+      )} */}
 
       {/* Output */}
       {videoUrls.length > 0 && (
