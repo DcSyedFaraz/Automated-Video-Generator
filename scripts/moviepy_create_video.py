@@ -6,10 +6,14 @@ cards, a voice‑over track, and (quieter) background music.
 import argparse
 from moviepy import (
     ImageClip,
+    afx,
     AudioFileClip,
     concatenate_videoclips,
     CompositeAudioClip,
 )
+import multiprocessing
+from moviepy.video.fx.CrossFadeIn import CrossFadeIn
+from moviepy.video.fx.Crop import Crop
 
 # ────────────────────────────── CLI ──────────────────────────────
 parser = argparse.ArgumentParser(
@@ -39,6 +43,8 @@ parser.add_argument(
 parser.add_argument("--fps", type=int, default=24, help="frames per second")
 parser.add_argument("--output", required=True, help="output video path (e.g. out.mp4)")
 parser.add_argument("images", nargs="+", help="main image files (PNG, JPG, …)")
+parser.add_argument("--width", type=int, default=1024, help="output video width")
+parser.add_argument("--height", type=int, default=1024, help="output video height")
 parser.add_argument(
     "--transition-duration",
     type=float,
@@ -78,11 +84,17 @@ if args.intro:
     clips.append(ImageClip(args.intro).with_duration(INTRO_DURATION))
 
 for img in args.images:
-    clips.append(ImageClip(img).with_duration(image_duration))
+    clip = ImageClip(img, duration=image_duration).resized(height=args.height)
+    clip = clip.cropped(
+        width=args.width,
+        height=args.height,
+        x_center=clip.w / 2,
+        y_center=clip.h / 2,
+    )
+    clips.append(clip)
 
 if args.outro:
     clips.append(ImageClip(args.outro).with_duration(OUTRO_DURATION))
-from moviepy.video.fx.CrossFadeIn import CrossFadeIn
 
 if args.transition_duration > 0:
     from moviepy import CompositeVideoClip
@@ -106,7 +118,7 @@ else:
     video = concatenate_videoclips(clips, method="compose")
 
 video = video.with_fps(args.fps)
-
+video = video.resized(height=480, width=854)
 # ─────────────────────────── Audio mixing ────────────────────────
 audio_tracks = []
 
@@ -116,20 +128,25 @@ if vo_clip:
 
 # background music at user‑controlled gain
 if args.music:
-    bgm = AudioFileClip(args.music) * args.music_volume
-    bgm = bgm.with_duration(video.duration)
+    bgm = AudioFileClip(args.music).with_effects(
+        [afx.MultiplyVolume(args.music_volume)]
+    )
     audio_tracks.append(bgm)
 
 if audio_tracks:
     final_audio = CompositeAudioClip(audio_tracks)
     video = video.with_audio(final_audio)
 
+threads = multiprocessing.cpu_count()
 # ─────────────────────────── Render ──────────────────────────────
 video.write_videofile(
     args.output,
     codec="libx264",
+    preset="ultrafast",
     audio_codec="aac",
     fps=args.fps,
     bitrate="4000k",
-    threads=4,
+    threads=threads,
+    temp_audiofile="temp-audio.m4a",
+    remove_temp=True,
 )

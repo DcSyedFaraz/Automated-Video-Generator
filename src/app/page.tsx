@@ -99,27 +99,27 @@ export default function Page() {
       {selectedScripts.length > 0 && <VoiceSelector onSelect={setVoiceIds} />}
 
       {/* Style Preset for Images */}
-      {voiceIds.length > 0 && (
+      {/* {voiceIds.length > 0 && (
         <StyleSelector selected={stylePreset} onSelect={setStylePreset} />
-      )}
+      )} */}
 
       {/* Image Generation & Selection */}
-      <ImageUploader
-        onGenerate={handleGenerateImages}
-        images={generatedImages}
-        onSelect={setSelectedImages}
-        loading={loading}
-      />
-      {/* {voiceIds.length > 0 && (
-      )} */}
+      {voiceIds.length > 0 && (
+        <ImageUploader
+          onGenerate={handleGenerateImages}
+          images={generatedImages}
+          onSelect={setSelectedImages}
+          loading={loading}
+        />
+      )}
 
       {/* Video Generation */}
-      <VideoGenerator
-        onGenerate={handleGenerateVideo}
-        videoUrls={videoUrls}
-      />
-      {/* {selectedImages.length > 0 && (
-      )} */}
+      {selectedImages.length > 0 && (
+        <VideoGenerator
+          onGenerate={handleGenerateVideo}
+          videoUrls={videoUrls}
+        />
+      )}
 
       {/* Output */}
       {videoUrls.length > 0 && (

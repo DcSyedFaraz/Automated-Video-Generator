@@ -35,32 +35,11 @@ export async function generateImage(prompt: string, n = 1): Promise<string[]> {
     .filter((url): url is string => Boolean(url));
 }
 
-/**
- * Edit (or variation) of an existing PNG via DALL·E 2.
- *
- * @param imagePath  Local filesystem path to a PNG
- * @param prompt     Text prompt describing the edit
- * @param n          How many variants to produce
- */
 export async function editImage(
   imagePath: string,
   prompt: string,
   n = 1
 ): Promise<string[]> {
-  // if (path.extname(imagePath).toLowerCase() !== ".png") {
-  //   throw new Error("Only PNG images are allowed");
-  // }
-
-  // const filePayload = fileBuilder(imagePath);
-  // console.log(
-  //   "Editing image at path:",
-  //   imagePath,
-  //   " filePayload:",
-  //   filePayload,
-  //   "filePayload value:",
-  //   filePayload.value
-  // );
-
   try {
     const file = await toFile(
       fs.createReadStream(imagePath),

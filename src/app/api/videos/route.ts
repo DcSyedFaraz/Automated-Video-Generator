@@ -19,11 +19,11 @@ export async function POST(req: NextRequest) {
   await fs.mkdir(dir, { recursive: true });
 
   const imagePaths: string[] = [
-  'D:\\projects\\video-gen\\public\\output\\1750252666231-332014.png',
-  'D:\\projects\\video-gen\\public\\output\\1750252668576-747595.png',
-  'D:\\projects\\video-gen\\public\\output\\1750252669694-123949.png',
-  'D:\\projects\\video-gen\\public\\output\\1750252671069-29292.png',
-  'D:\\projects\\video-gen\\public\\output\\1750252672974-50032.png'
+  'D:\\projects\\video-gen\\public\\output\\1750262303015-355335.png',
+  'D:\\projects\\video-gen\\public\\output\\1750262305532-313359.png',
+  'D:\\projects\\video-gen\\public\\output\\1750262307302-745602.png',
+  'D:\\projects\\video-gen\\public\\output\\1750262309800-304436.png',
+  'D:\\projects\\video-gen\\public\\output\\1750262312237-309484.png'
 ];
   // const imagePaths: string[] = [];
   // for (const url of images) {
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       
       const audioPath = path.join(
         dir,
-        "1750162485212-CYw3kZ02Hs0563khs1Fj.mp3"
+        "1750262314154-21m00Tcm4TlvDq8ikWAM.mp3"
       );
 
       // const audioPath = path.join(dir, `${Date.now()}-${vid}.mp3`);
