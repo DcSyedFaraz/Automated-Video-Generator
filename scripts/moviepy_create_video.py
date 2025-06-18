@@ -4,6 +4,9 @@ Create a slideshow‑style video from still images, with optional intro/outro
 cards, a voice‑over track, and (quieter) background music.
 """
 import argparse
+import math
+import os
+import sys
 from moviepy import (
     ImageClip,
     afx,
@@ -14,6 +17,12 @@ from moviepy import (
 import multiprocessing
 from moviepy.video.fx.CrossFadeIn import CrossFadeIn
 from moviepy.video.fx.Crop import Crop
+from moviepy.video.VideoClip import ColorClip
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from scripts.function import create_image_grid
 
 # ────────────────────────────── CLI ──────────────────────────────
 parser = argparse.ArgumentParser(
@@ -83,42 +92,47 @@ clips = []
 if args.intro:
     clips.append(ImageClip(args.intro).with_duration(INTRO_DURATION))
 
-for img in args.images:
-    clip = ImageClip(img, duration=image_duration).resized(height=args.height)
-    clip = clip.cropped(
-        width=args.width,
-        height=args.height,
-        x_center=clip.w / 2,
-        y_center=clip.h / 2,
-    )
-    clips.append(clip)
+# for img in args.images:
+#     clip = ImageClip(img, duration=image_duration).resized(height=args.height)
+#     clips.append(clip)
+
+
+# Create clips for each image, resized to fit the video dimensions
+grid_clip = create_image_grid(
+    images_list=args.images,  # Can be 5, 10, 15, or any number of images
+    video_width=args.width,
+    video_height=args.height,
+    duration=remaining_time,
+)
+
+clips.append(grid_clip)
 
 if args.outro:
     clips.append(ImageClip(args.outro).with_duration(OUTRO_DURATION))
 
-if args.transition_duration > 0:
-    from moviepy import CompositeVideoClip
+    # if args.transition_duration > 0:
+    #     from moviepy import CompositeVideoClip
 
-    transition = args.transition_duration
-    xf_clips = []
-    current = 0.0
-    for idx, clip in enumerate(clips):
-        # schedule each clip at its start time
-        clip = clip.with_start(current)
-        # fade in for every clip except the very first
-        if idx > 0:
-            clip = CrossFadeIn(transition).apply(clip)
-        xf_clips.append(clip)
-        # advance time by clip duration minus overlap
-        overlap = transition if idx < len(clips) - 1 else 0.0
-        current += clip.duration - overlap
+    #     transition = args.transition_duration
+    #     xf_clips = []
+    #     current = 0.0
+    #     for idx, clip in enumerate(clips):
+    #         # schedule each clip at its start time
+    #         clip = clip.with_start(current)
+    #         # fade in for every clip except the very first
+    #         if 0 < idx < len(clips) - 1:
+    #             clip = CrossFadeIn(transition).apply(clip)
+    #         xf_clips.append(clip)
+    #         # advance time by clip duration minus overlap
+    #         overlap = transition if idx < len(clips) - 1 else 0.0
+    #         current += clip.duration - overlap
 
-    video = CompositeVideoClip(xf_clips).with_duration(current)
-else:
+    #     video = CompositeVideoClip(xf_clips).with_duration(current)
+    # else:
     video = concatenate_videoclips(clips, method="compose")
 
 video = video.with_fps(args.fps)
-video = video.resized(height=480, width=854)
+# video = video.resized(args.height, args.width)
 # ─────────────────────────── Audio mixing ────────────────────────
 audio_tracks = []
 
@@ -128,8 +142,10 @@ if vo_clip:
 
 # background music at user‑controlled gain
 if args.music:
-    bgm = AudioFileClip(args.music).with_effects(
-        [afx.MultiplyVolume(args.music_volume)]
+    bgm = (
+        AudioFileClip(args.music)
+        .with_effects([afx.MultiplyVolume(args.music_volume)])
+        .with_duration(video.duration)
     )
     audio_tracks.append(bgm)
 
