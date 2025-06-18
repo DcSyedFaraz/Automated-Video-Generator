@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import * as fs2 from "fs";
 import path from "path";
 import { synthesize } from "@/lib/elevenlabs";
-import { createVideo } from "@/lib/ffmpeg";
+import { createVideo } from "@/lib/moviepy";
 import { pipeline } from "stream/promises";
 import { Readable } from "stream";
 import { sanitizeSasUrl } from "@/app/utils/azure";
