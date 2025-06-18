@@ -39,6 +39,18 @@ parser.add_argument(
 parser.add_argument("--fps", type=int, default=24, help="frames per second")
 parser.add_argument("--output", required=True, help="output video path (e.g. out.mp4)")
 parser.add_argument("images", nargs="+", help="main image files (PNG, JPG, …)")
+parser.add_argument(
+    "--transition-duration",
+    type=float,
+    default=1.0,
+    help="crossfade duration between consecutive clips in seconds",
+)
+parser.add_argument(
+    "--audio-volume",
+    type=float,
+    default=1.0,
+    help="gain to apply to the voice-over audio (e.g. 1.5 = +50%)",
+)
 args = parser.parse_args()
 
 # ────────────────────────────── Constants ────────────────────────
@@ -70,8 +82,29 @@ for img in args.images:
 
 if args.outro:
     clips.append(ImageClip(args.outro).with_duration(OUTRO_DURATION))
+from moviepy.video.fx.CrossFadeIn import CrossFadeIn
 
-video = concatenate_videoclips(clips, method="compose")
+if args.transition_duration > 0:
+    from moviepy import CompositeVideoClip
+
+    transition = args.transition_duration
+    xf_clips = []
+    current = 0.0
+    for idx, clip in enumerate(clips):
+        # schedule each clip at its start time
+        clip = clip.with_start(current)
+        # fade in for every clip except the very first
+        if idx > 0:
+            clip = CrossFadeIn(transition).apply(clip)
+        xf_clips.append(clip)
+        # advance time by clip duration minus overlap
+        overlap = transition if idx < len(clips) - 1 else 0.0
+        current += clip.duration - overlap
+
+    video = CompositeVideoClip(xf_clips).with_duration(current)
+else:
+    video = concatenate_videoclips(clips, method="compose")
+
 video = video.with_fps(args.fps)
 
 # ─────────────────────────── Audio mixing ────────────────────────
