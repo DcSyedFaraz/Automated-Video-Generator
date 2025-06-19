@@ -59,27 +59,49 @@ export default function Page() {
     setLoading(false);
     const { images } = await res.json();
     console.log("Generated images:", images);
-    
+
     setGeneratedImages(images);
     setSelectedImages([]);
   }
 
   async function handleGenerateVideo() {
-    // if (!selectedScripts.length || !voiceIds.length || !selectedImages.length)
-    //   return;
+    // Basic validation
+    if (!selectedScripts.length || !voiceIds.length || !selectedImages.length) {
+      return;
+    }
 
-    const res = await fetch("/api/videos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        scripts: selectedScripts,
-        voiceIds,
-        images: selectedImages,
-      }),
-    });
+    // Validate selected images count
+    const validImageCounts = [5, 10, 15, 20, 25];
+    if (!validImageCounts.includes(selectedImages.length)) {
+      // You can customize this error handling based on your UI needs
+      alert(
+        `Please select exactly 5, 10, 15, 20, or 25 images. Currently selected: ${selectedImages.length}`
+      );
+      return;
+    }
 
-    const { urls } = await res.json();
-    setVideoUrls(urls);
+    try {
+      const res = await fetch("/api/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scripts: selectedScripts,
+          voiceIds,
+          images: selectedImages,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const { urls } = await res.json();
+      setVideoUrls(urls);
+    } catch (error) {
+      console.error("Error generating video:", error);
+      // Handle error appropriately for your UI
+      alert("Failed to generate video. Please try again.");
+    }
   }
 
   return (

@@ -26,7 +26,11 @@ from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from scripts.function import create_decory_slideshow, create_decory_slideshow_with_crossfade, create_image_grid
+from scripts.function import (
+    create_decory_slideshow,
+    create_decory_slideshow_with_crossfade,
+    create_image_grid,
+)
 
 # ────────────────────────────── CLI ──────────────────────────────
 parser = argparse.ArgumentParser(
@@ -86,7 +90,7 @@ if num_images == 0:
 # ──────────────────────────── Timing logic ───────────────────────
 if args.audio:  # use voice‑over length
     vo_clip = AudioFileClip(args.audio)
-    total_time = 5.0
+    total_time = 15.0
     # total_time = vo_clip.duration
     remaining_time = max(total_time - INTRO_DURATION - OUTRO_DURATION, 0)
     image_duration = remaining_time / num_images
@@ -98,9 +102,9 @@ else:  # fall back to explicit --duration
 # ─────────────────────────── Build video track ───────────────────
 clips = []
 
-# if args.intro:
-#     clips.append(VideoFileClip(args.intro).with_duration(INTRO_DURATION))
-    # clips.append(ImageClip(args.intro).with_duration(INTRO_DURATION))
+if args.intro:
+    clips.append(VideoFileClip(args.intro).with_duration(INTRO_DURATION))
+# clips.append(ImageClip(args.intro).with_duration(INTRO_DURATION))
 
 # for img in args.images:
 #     clip = ImageClip(img, duration=image_duration).resized(height=args.height)
@@ -116,23 +120,19 @@ clips = []
 # )
 grid_clip = create_decory_slideshow(
     slideshow_images=args.images,
-    static_images=[
-        "D:\\projects\\video-gen\\public\\output\\img_1750339337274_1.png",
-        "D:\\projects\\video-gen\\public\\output\\img_1750339337342_2.png",
-        "D:\\projects\\video-gen\\public\\output\\img_1750339337350_3.png",
-        "D:\\projects\\video-gen\\public\\output\\img_1750339337369_4.png",
-    ],
+    static_images=args.images[1:],
     labels_list=["Minimal", "Futuristic", "Luxury", "Modern"],
     video_width=args.width,
     video_height=args.height,
-    total_duration=5,
+    total_duration=remaining_time,
+    # total_duration=5,
     # transition_duration=0.5,
 )
 
 clips.append(grid_clip)
 
-# if args.outro:
-#     clips.append(ImageClip(args.outro).with_duration(OUTRO_DURATION))
+if args.outro:
+    clips.append(ImageClip(args.outro).with_duration(OUTRO_DURATION))
 
 # if args.transition_duration > 0:
 #     from moviepy import CompositeVideoClip
@@ -163,7 +163,7 @@ if args.subtitles:
     def make_text_clip(txt):
         return TextClip(
             text=txt,
-            font_size=25,
+            font_size=45,
             color="white",
             stroke_color="black",
             bg_color="black",
