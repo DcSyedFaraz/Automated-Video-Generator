@@ -58,6 +58,8 @@ export default function Page() {
     });
     setLoading(false);
     const { images } = await res.json();
+    console.log("Generated images:", images);
+    
     setGeneratedImages(images);
     setSelectedImages([]);
   }
@@ -104,14 +106,14 @@ export default function Page() {
       )} */}
 
       {/* Image Generation & Selection */}
-      {voiceIds.length > 0 && (
-        <ImageUploader
-          onGenerate={handleGenerateImages}
-          images={generatedImages}
-          onSelect={setSelectedImages}
-          loading={loading}
-        />
-      )}
+      <ImageUploader
+        onGenerate={handleGenerateImages}
+        images={generatedImages}
+        onSelect={setSelectedImages}
+        loading={loading}
+      />
+      {/* {voiceIds.length > 0 && (
+      )} */}
 
       {/* Video Generation */}
       {selectedImages.length > 0 && (

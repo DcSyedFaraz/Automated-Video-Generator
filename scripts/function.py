@@ -1,270 +1,583 @@
 import math
+import os
 from moviepy import ColorClip, CompositeVideoClip, ImageClip, TextClip
+from moviepy.video.fx import FadeIn, FadeOut
 
 
 def create_image_grid(images_list, video_width, video_height, duration):
     """
-    Create a modern, mobile-friendly grid layout that adapts to any number of images
-    with rounded corners, proper spacing, and clean aesthetics
+    Create the exact Decory app layout:
+    - 1 large image at the top (main image)
+    - 4 smaller images in a 2x2 grid below
+    - Exactly 5 images total
     """
 
-    num_images = len(images_list)
+    if len(images_list) != 5:
+        raise ValueError("This layout requires exactly 5 images")
 
-    # Calculate optimal grid dimensions
-    if num_images == 1:
-        cols, rows = 1, 1
-    elif num_images == 2:
-        cols, rows = 1, 2  # Stack vertically for mobile-like layout
-    elif num_images == 3:
-        cols, rows = 1, 3  # Single column for 3 images
-    elif num_images == 4:
-        cols, rows = 2, 2
-    elif num_images <= 6:
-        cols, rows = 2, 3
-    elif num_images <= 9:
-        cols, rows = 3, 3
-    elif num_images <= 12:
-        cols, rows = 3, 4
-    elif num_images <= 16:
-        cols, rows = 4, 4
-    else:
-        # For larger numbers, create a roughly square grid
-        cols = math.ceil(math.sqrt(num_images))
-        rows = math.ceil(num_images / cols)
-
-    # Modern color palette - soft pink background like in the image
-    bg_color = (248, 226, 226)  # Soft pink/rose background
+    # Colors matching the Decory app
+    bg_color = (248, 226, 226)  # Soft pink background
     card_color = (255, 255, 255)  # White cards
 
-    # Background with gradient-like effect
+    # Create background
     bg = ColorClip(size=(video_width, video_height), color=bg_color).with_duration(
         duration
     )
 
-    # Calculate responsive padding and margins
-    base_padding = min(video_width, video_height) * 0.05  # 5% base padding
-    card_margin = min(video_width, video_height) * 0.02  # 2% margin between cards
+    # Layout parameters
+    padding = int(min(video_width, video_height) * 0.04)  # 4% padding from edges
+    card_margin = int(min(video_width, video_height) * 0.02)  # 2% margin between cards
 
-    # Calculate available space
-    total_horizontal_margin = base_padding * 2 + card_margin * (cols - 1)
-    total_vertical_margin = base_padding * 2 + card_margin * (rows - 1)
+    # Calculate dimensions
+    # Main image (top) - takes about 50% of height
+    main_card_width = video_width - (padding * 2)
+    main_card_height = int(video_height * 0.45)  # 45% of total height
 
-    available_width = video_width - total_horizontal_margin
-    available_height = video_height - total_vertical_margin
-
-    # Calculate card dimensions
-    card_width = int(available_width / cols)
-    card_height = int(available_height / rows)
-
-    # Ensure minimum card size
-    min_card_size = min(video_width, video_height) * 0.15
-    card_width = max(card_width, int(min_card_size))
-    card_height = max(card_height, int(min_card_size))
+    # Small images (bottom 2x2 grid) - remaining space
+    remaining_height = video_height - main_card_height - (padding * 3) - card_margin
+    small_card_height = remaining_height // 2
+    small_card_width = (main_card_width - card_margin) // 2
 
     clips = [bg]
 
-    for i, image_path in enumerate(images_list):
-        if i >= rows * cols:
+    # 1. Main image (top, large)
+    main_x = padding
+    main_y = padding
+
+    # Main card background with shadow
+    main_shadow = (
+        ColorClip(size=(main_card_width, main_card_height), color=(200, 200, 200))
+        .with_position((main_x + 6, main_y + 6))
+        .with_duration(duration)
+        .with_opacity(0.3)
+    )
+
+    main_card_bg = (
+        ColorClip(size=(main_card_width, main_card_height), color=card_color)
+        .with_position((main_x, main_y))
+        .with_duration(duration)
+    )
+
+    # Main image
+    try:
+        main_img = ImageClip(images_list[0])
+
+        # Scale to fit main card with padding
+        img_padding = 15
+        target_width = main_card_width - (img_padding * 2)
+        target_height = main_card_height - (img_padding * 2)
+
+        # Calculate scale to fit
+        img_w, img_h = main_img.size
+        scale_w = target_width / img_w
+        scale_h = target_height / img_h
+        scale = min(scale_w, scale_h)
+
+        main_img = main_img.resized(scale)
+
+        # Center the image
+        img_x = main_x + (main_card_width - main_img.size[0]) // 2
+        img_y = main_y + (main_card_height - main_img.size[1]) // 2
+
+        main_img = main_img.with_position((img_x, img_y)).with_duration(duration)
+
+        clips.extend([main_shadow, main_card_bg, main_img])
+
+    except Exception as e:
+        print(f"Error processing main image: {e}")
+        clips.extend([main_shadow, main_card_bg])
+
+    # 2. Four small images in 2x2 grid
+    grid_start_y = main_y + main_card_height + card_margin
+
+    # Positions for 2x2 grid
+    positions = [
+        (0, 0),  # Top-left
+        (1, 0),  # Top-right
+        (0, 1),  # Bottom-left
+        (1, 1),  # Bottom-right
+    ]
+
+    for i, (col, row) in enumerate(positions):
+        if i + 1 >= len(images_list):  # Skip if we don't have enough images
             break
 
-        # Calculate grid position
-        row = i // cols
-        col = i % cols
+        # Calculate position
+        small_x = padding + col * (small_card_width + card_margin)
+        small_y = grid_start_y + row * (small_card_height + card_margin)
 
-        # Calculate card position with proper centering
-        start_x = (video_width - (cols * card_width + (cols - 1) * card_margin)) // 2
-        start_y = (video_height - (rows * card_height + (rows - 1) * card_margin)) // 2
-
-        x = start_x + col * (card_width + card_margin)
-        y = start_y + row * (card_height + card_margin)
-
-        # Create card background with rounded corners effect
-        card_bg = (
-            ColorClip(size=(card_width, card_height), color=card_color)
-            .with_position((x, y))
-            .with_duration(duration)
-        )
-
-        # Create shadow effect (optional)
-        shadow_offset = 4
-        shadow_bg = (
-            ColorClip(
-                size=(card_width, card_height),
-                color=(200, 200, 200),  # Light gray shadow
-            )
-            .with_position((x + shadow_offset, y + shadow_offset))
+        # Small card shadow
+        small_shadow = (
+            ColorClip(size=(small_card_width, small_card_height), color=(200, 200, 200))
+            .with_position((small_x + 4, small_y + 4))
             .with_duration(duration)
             .with_opacity(0.3)
         )
 
-        # Image content area with padding
-        image_padding = min(card_width, card_height) * 0.08  # 8% padding inside card
-        image_width = card_width - (image_padding * 2)
-        image_height = card_height - (image_padding * 2)
+        # Small card background
+        small_card_bg = (
+            ColorClip(size=(small_card_width, small_card_height), color=card_color)
+            .with_position((small_x, small_y))
+            .with_duration(duration)
+        )
 
-        # Create and resize image to fit within card
+        # Small image
         try:
-            img_clip = ImageClip(image_path)
+            small_img = ImageClip(
+                images_list[i + 1]
+            )  # +1 because index 0 is the main image
 
-            # Calculate scaling to fit within the image area while maintaining aspect ratio
-            img_w, img_h = img_clip.size
-            scale_w = image_width / img_w
-            scale_h = image_height / img_h
+            # Scale to fit small card
+            img_padding = 10
+            target_width = small_card_width - (img_padding * 2)
+            target_height = small_card_height - (img_padding * 2)
+
+            img_w, img_h = small_img.size
+            scale_w = target_width / img_w
+            scale_h = target_height / img_h
             scale = min(scale_w, scale_h)
 
-            # Resize image
-            img_clip = img_clip.resized(scale)
+            small_img = small_img.resized(scale)
 
-            # Center the image within the card
-            img_x = x + (card_width - img_clip.size[0]) // 2
-            img_y = y + (card_height - img_clip.size[1]) // 2
+            # Center the image
+            img_x = small_x + (small_card_width - small_img.size[0]) // 2
+            img_y = small_y + (small_card_height - small_img.size[1]) // 2
 
-            img_clip = img_clip.with_position((img_x, img_y)).with_duration(duration)
+            small_img = small_img.with_position((img_x, img_y)).with_duration(duration)
 
-            # Add clips in order: shadow, card background, image
-            clips.extend([shadow_bg, card_bg, img_clip])
+            clips.extend([small_shadow, small_card_bg, small_img])
 
         except Exception as e:
-            print(f"Error processing image {image_path}: {e}")
-            # Create placeholder if image fails to load
-            placeholder = (
-                ColorClip(size=(image_width, image_height), color=(240, 240, 240))
-                .with_position((x + image_padding, y + image_padding))
-                .with_duration(duration)
-            )
-
-            clips.extend([shadow_bg, card_bg, placeholder])
+            print(f"Error processing small image {i+1}: {e}")
+            clips.extend([small_shadow, small_card_bg])
 
     return CompositeVideoClip(clips)
 
 
-# Alternative version with text labels (like "Minimal", "Futuristic" in your image)
-def create_image_grid_with_labels(
-    images_list, labels_list, video_width, video_height, duration
+def create_decory_slideshow(
+    slideshow_images,
+    static_images,
+    labels_list,
+    video_width,
+    video_height,
+    total_duration,
+    transition_duration=0.5,
 ):
     """
-    Create image grid with text labels below each image
+    Create Decory layout with slideshow in the main (white) area
+
+    Args:
+        slideshow_images: List of images to slideshow in the main white area
+        static_images: List of 4 images for the bottom 2x2 grid (static)
+        labels_list: List of 4 labels for the bottom images
+        video_width: Width of the video
+        video_height: Height of the video
+        total_duration: Total duration of the video
+        transition_duration: Duration of fade transition between slides
     """
 
-    num_images = len(images_list)
+    if len(static_images) != 4:
+        raise ValueError("Need exactly 4 static images for the bottom grid")
 
-    # Calculate grid dimensions (same as above)
-    if num_images == 1:
-        cols, rows = 1, 1
-    elif num_images == 2:
-        cols, rows = 1, 2
-    elif num_images == 3:
-        cols, rows = 1, 3
-    elif num_images == 4:
-        cols, rows = 2, 2
-    elif num_images <= 6:
-        cols, rows = 2, 3
-    elif num_images <= 9:
-        cols, rows = 3, 3
-    else:
-        cols = math.ceil(math.sqrt(num_images))
-        rows = math.ceil(num_images / cols)
+    if len(labels_list) != 4:
+        raise ValueError("Need exactly 4 labels for the bottom images")
 
     # Colors
-    bg_color = (248, 226, 226)  # Soft pink
-    card_color = (255, 255, 255)  # White
+    bg_color = (248, 226, 226)  # Soft pink background
+    card_color = (255, 255, 255)  # White cards
+    text_color = "black"
+
+    # Create background
+    bg = ColorClip(size=(video_width, video_height), color=bg_color).with_duration(
+        total_duration
+    )
+
+    # Layout parameters
+    padding = int(min(video_width, video_height) * 0.04)
+    card_margin = int(min(video_width, video_height) * 0.02)
+    label_height = 30
+
+    # Main slideshow area dimensions
+    main_card_width = video_width - (padding * 2)
+    main_card_height = int(video_height * 0.4)
+
+    # Small images dimensions
+    remaining_height = video_height - main_card_height - (padding * 3) - card_margin
+    small_card_height = (remaining_height - label_height) // 2
+    small_card_width = (main_card_width - card_margin) // 2
+
+    # Main slideshow area position
+    main_x = padding
+    main_y = padding
+
+    # Create main card background and shadow (static)
+    main_shadow = (
+        ColorClip(size=(main_card_width, main_card_height), color=(200, 200, 200))
+        .with_position((main_x + 6, main_y + 6))
+        .with_duration(total_duration)
+        .with_opacity(0.3)
+    )
+
+    main_card_bg = (
+        ColorClip(size=(main_card_width, main_card_height), color=card_color)
+        .with_position((main_x, main_y))
+        .with_duration(total_duration)
+    )
+
+    # Create slideshow in main area
+    slideshow_clips = []
+    if slideshow_images:
+        # Calculate timing for each slide
+        num_slides = len(slideshow_images)
+        slide_duration = total_duration / num_slides
+
+        img_padding = 20
+        target_width = main_card_width - (img_padding * 2)
+        target_height = main_card_height - (img_padding * 2)
+
+        for i, img_path in enumerate(slideshow_images):
+            try:
+                # Ensure the image file exists and is accessible
+                if not os.path.exists(img_path):
+                    print(f"Image file not found: {img_path}")
+                    continue
+
+                # Load image with explicit duration
+                slide_img = ImageClip(img_path, duration=slide_duration)
+
+                # Validate image loaded properly
+                if slide_img.size == (0, 0):
+                    print(f"Invalid image dimensions for: {img_path}")
+                    continue
+
+                # Scale to fit
+                img_w, img_h = slide_img.size
+                scale = min(target_width / img_w, target_height / img_h)
+                slide_img = slide_img.resized((int(img_w * scale), int(img_h * scale)))
+
+                # Center the image
+                img_x = main_x + (main_card_width - slide_img.size[0]) // 2
+                img_y = main_y + (main_card_height - slide_img.size[1]) // 2
+
+                # Set timing
+                start_time = i * slide_duration
+
+                # Position and timing
+                slide_img = slide_img.with_position((img_x, img_y)).with_start(
+                    start_time
+                )
+
+                # Add fade transitions
+                if i == 0:
+                    # First image: fade in
+                    slide_img = FadeIn(transition_duration).apply(slide_img)
+
+                elif i == len(slideshow_images) - 1:
+                    # Last image: fade out
+                    slide_img = FadeOut(transition_duration).apply(slide_img)
+                else:
+                    # Middle images: fade in and out
+                    slide_img = FadeIn(transition_duration).apply(slide_img)
+                    slide_img = FadeOut(transition_duration).apply(slide_img)
+                slideshow_clips.append(slide_img)
+
+            except Exception as e:
+                print(f"Error processing slideshow image {i} ({img_path}): {e}")
+                continue
+
+    # Debug print
+    print(f"Created {len(slideshow_clips)} slideshow clips")
+
+    # Create static bottom grid (4 images with labels)
+    static_clips = []
+    grid_start_y = main_y + main_card_height + card_margin
+    positions = [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+    for i, (col, row) in enumerate(positions):
+        small_x = padding + col * (small_card_width + card_margin)
+        small_y = grid_start_y + row * (small_card_height + card_margin + label_height)
+
+        # Card shadow and background
+        small_shadow = (
+            ColorClip(size=(small_card_width, small_card_height), color=(200, 200, 200))
+            .with_position((small_x + 4, small_y + 4))
+            .with_duration(total_duration)
+            .with_opacity(0.3)
+        )
+
+        small_card_bg = (
+            ColorClip(size=(small_card_width, small_card_height), color=card_color)
+            .with_position((small_x, small_y))
+            .with_duration(total_duration)
+        )
+
+        # Static image
+        try:
+            if not os.path.exists(static_images[i]):
+                print(f"Static image file not found: {static_images[i]}")
+                static_clips.extend([small_shadow, small_card_bg])
+                continue
+
+            static_img = ImageClip(static_images[i], duration=total_duration)
+
+            if static_img.size == (0, 0):
+                print(f"Invalid static image: {static_images[i]}")
+                static_clips.extend([small_shadow, small_card_bg])
+                continue
+
+            img_padding = 10
+            target_width = small_card_width - (img_padding * 2)
+            target_height = small_card_height - (img_padding * 2)
+
+            img_w, img_h = static_img.size
+            scale = min(target_width / img_w, target_height / img_h)
+            static_img = static_img.resized((int(img_w * scale), int(img_h * scale)))
+
+            img_x = small_x + (small_card_width - static_img.size[0]) // 2
+            img_y = small_y + (small_card_height - static_img.size[1]) // 2
+            static_img = static_img.with_position((img_x, img_y))
+
+            static_clips.extend([small_shadow, small_card_bg, static_img])
+
+        except Exception as e:
+            print(f"Error processing static image {i}: {e}")
+            static_clips.extend([small_shadow, small_card_bg])
+
+        # Label
+        try:
+            text_clip = TextClip(
+                labels_list[i],
+                font_size=min(small_card_width // 10, 16),
+                color=text_color,
+            ).with_duration(total_duration)
+
+            text_x = small_x + (small_card_width - text_clip.size[0]) // 2
+            text_y = small_y + small_card_height + 8
+            text_clip = text_clip.with_position((text_x, text_y))
+            static_clips.append(text_clip)
+
+        except Exception as e:
+            print(f"Error creating label {i}: {e}")
+
+    # Combine all clips
+    all_clips = [bg, main_shadow, main_card_bg] + slideshow_clips + static_clips
+
+    return CompositeVideoClip(all_clips)
+
+
+def create_decory_slideshow_with_crossfade(
+    slideshow_images,
+    static_images,
+    labels_list,
+    video_width,
+    video_height,
+    total_duration,
+    slide_duration=2.0,
+    crossfade_duration=0.5,
+):
+    """
+    Create Decory slideshow with smooth crossfade transitions
+
+    Args:
+        slideshow_images: List of images to slideshow
+        static_images: List of 4 static images for bottom grid
+        labels_list: List of 4 labels
+        video_width: Width of video
+        video_height: Height of video
+        total_duration: Total duration
+        slide_duration: How long each slide is visible
+        crossfade_duration: Duration of crossfade between slides
+    """
+
+    if len(static_images) != 4 or len(labels_list) != 4:
+        raise ValueError("Need exactly 4 static images and 4 labels")
+
+    # Colors and layout (same as above)
+    bg_color = (248, 226, 226)
+    card_color = (255, 255, 255)
     text_color = "black"
 
     bg = ColorClip(size=(video_width, video_height), color=bg_color).with_duration(
-        duration
+        total_duration
     )
 
-    # Calculate dimensions with space for labels
-    base_padding = min(video_width, video_height) * 0.05
-    card_margin = min(video_width, video_height) * 0.02
-    label_height = 30  # Height reserved for text labels
+    padding = int(min(video_width, video_height) * 0.04)
+    card_margin = int(min(video_width, video_height) * 0.02)
+    label_height = 30
 
-    total_horizontal_margin = base_padding * 2 + card_margin * (cols - 1)
-    total_vertical_margin = base_padding * 2 + card_margin * (rows - 1)
+    main_card_width = video_width - (padding * 2)
+    main_card_height = int(video_height * 0.4)
 
-    available_width = video_width - total_horizontal_margin
-    available_height = video_height - total_vertical_margin
+    remaining_height = video_height - main_card_height - (padding * 3) - card_margin
+    small_card_height = (remaining_height - label_height) // 2
+    small_card_width = (main_card_width - card_margin) // 2
 
-    card_width = int(available_width / cols)
-    card_height = int(available_height / rows)
+    main_x = padding
+    main_y = padding
 
-    # Adjust for label space
-    image_height = card_height - label_height - 10  # 10px spacing
+    # Main card background
+    main_shadow = (
+        ColorClip(size=(main_card_width, main_card_height), color=(200, 200, 200))
+        .with_position((main_x + 6, main_y + 6))
+        .with_duration(total_duration)
+        .with_opacity(0.3)
+    )
 
-    clips = [bg]
+    main_card_bg = (
+        ColorClip(size=(main_card_width, main_card_height), color=card_color)
+        .with_position((main_x, main_y))
+        .with_duration(total_duration)
+    )
 
-    for i, image_path in enumerate(images_list):
-        if i >= rows * cols:
-            break
+    # Create slideshow with crossfade
+    slideshow_clips = []
+    if slideshow_images:
+        img_padding = 20
+        target_width = main_card_width - (img_padding * 2)
+        target_height = main_card_height - (img_padding * 2)
 
-        row = i // cols
-        col = i % cols
+        # Calculate how many full cycles we can fit
+        cycle_duration = len(slideshow_images) * slide_duration
+        num_cycles = max(1, int(total_duration / cycle_duration))
 
-        # Calculate positions
-        start_x = (video_width - (cols * card_width + (cols - 1) * card_margin)) // 2
-        start_y = (video_height - (rows * card_height + (rows - 1) * card_margin)) // 2
+        for cycle in range(num_cycles):
+            cycle_start = cycle * cycle_duration
 
-        x = start_x + col * (card_width + card_margin)
-        y = start_y + row * (card_height + card_margin)
+            for i, img_path in enumerate(slideshow_images):
+                try:
+                    # Check if image exists
+                    if not os.path.exists(img_path):
+                        print(f"Image file not found: {img_path}")
+                        continue
 
-        # Card background
-        card_bg = (
-            ColorClip(size=(card_width, card_height), color=card_color)
-            .with_position((x, y))
-            .with_duration(duration)
-        )
+                    slide_img = ImageClip(img_path)
 
-        # Shadow
-        shadow_bg = (
-            ColorClip(size=(card_width, card_height), color=(200, 200, 200))
-            .with_position((x + 4, y + 4))
-            .with_duration(duration)
+                    # Validate image
+                    if slide_img.size == (0, 0):
+                        print(f"Invalid image: {img_path}")
+                        continue
+
+                    # Scale to fit
+                    img_w, img_h = slide_img.size
+                    scale = min(target_width / img_w, target_height / img_h)
+                    slide_img = slide_img.resized(
+                        (int(img_w * scale), int(img_h * scale))
+                    )
+
+                    # Center position
+                    img_x = main_x + (main_card_width - slide_img.size[0]) // 2
+                    img_y = main_y + (main_card_height - slide_img.size[1]) // 2
+
+                    # Timing
+                    start_time = cycle_start + i * slide_duration
+                    clip_duration = min(
+                        slide_duration + crossfade_duration, total_duration - start_time
+                    )
+
+                    if start_time >= total_duration:
+                        break
+
+                    # Set proper duration and timing
+                    slide_img = (
+                        slide_img.with_position((img_x, img_y))
+                        .with_duration(clip_duration)
+                        .with_start(start_time)
+                    )
+
+                    # Apply crossfade
+                    if i == 0 and cycle == 0:
+                        # First image ever: just fade in
+                        slide_img = FadeIn(crossfade_duration).apply(slide_img)
+
+                    elif start_time + slide_duration >= total_duration:
+                        # Last image: fade out
+                        slide_img = FadeOut(crossfade_duration).apply(slide_img)
+                    else:
+                        # Regular crossfade
+                        slide_img = FadeIn(crossfade_duration).apply(slide_img)
+                        slide_img = FadeOut(crossfade_duration).apply(slide_img)
+
+                    slideshow_clips.append(slide_img)
+
+                except Exception as e:
+                    print(
+                        f"Error processing slideshow image {i} in cycle {cycle} ({img_path}): {e}"
+                    )
+                    continue
+
+    # Debug print
+    print(f"Created {len(slideshow_clips)} slideshow clips with crossfade")
+
+    # Static bottom grid (same as previous function)
+    static_clips = []
+    grid_start_y = main_y + main_card_height + card_margin
+    positions = [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+    for i, (col, row) in enumerate(positions):
+        small_x = padding + col * (small_card_width + card_margin)
+        small_y = grid_start_y + row * (small_card_height + card_margin + label_height)
+
+        small_shadow = (
+            ColorClip(size=(small_card_width, small_card_height), color=(200, 200, 200))
+            .with_position((small_x + 4, small_y + 4))
+            .with_duration(total_duration)
             .with_opacity(0.3)
         )
 
-        # Image
-        image_padding = 10
+        small_card_bg = (
+            ColorClip(size=(small_card_width, small_card_height), color=card_color)
+            .with_position((small_x, small_y))
+            .with_duration(total_duration)
+        )
+
         try:
-            img_clip = ImageClip(image_path)
+            if not os.path.exists(static_images[i]):
+                print(f"Static image file not found: {static_images[i]}")
+                static_clips.extend([small_shadow, small_card_bg])
+                continue
 
-            # Scale to fit
-            img_w, img_h = img_clip.size
-            scale_w = (card_width - image_padding * 2) / img_w
-            scale_h = (image_height - image_padding * 2) / img_h
-            scale = min(scale_w, scale_h)
+            static_img = ImageClip(static_images[i], duration=total_duration)
 
-            img_clip = img_clip.resized(scale)
+            if static_img.size == (0, 0):
+                print(f"Invalid static image: {static_images[i]}")
+                static_clips.extend([small_shadow, small_card_bg])
+                continue
 
-            # Center horizontally, position at top of card
-            img_x = x + (card_width - img_clip.size[0]) // 2
-            img_y = y + image_padding
+            img_padding = 10
+            target_width = small_card_width - (img_padding * 2)
+            target_height = small_card_height - (img_padding * 2)
 
-            img_clip = img_clip.with_position((img_x, img_y)).with_duration(duration)
+            img_w, img_h = static_img.size
+            scale = min(target_width / img_w, target_height / img_h)
+            static_img = static_img.resized((int(img_w * scale), int(img_h * scale)))
 
-            clips.extend([shadow_bg, card_bg, img_clip])
+            img_x = small_x + (small_card_width - static_img.size[0]) // 2
+            img_y = small_y + (small_card_height - static_img.size[1]) // 2
+            static_img = static_img.with_position((img_x, img_y))
+
+            static_clips.extend([small_shadow, small_card_bg, static_img])
 
         except Exception as e:
-            print(f"Error processing image {image_path}: {e}")
-            clips.extend([shadow_bg, card_bg])
+            print(f"Error processing static image {i}: {e}")
+            static_clips.extend([small_shadow, small_card_bg])
 
-        # Add text label if provided
-        if i < len(labels_list) and labels_list[i]:
-            try:
-                text_clip = TextClip(
-                    labels_list[i],
-                    fontsize=min(card_width // 8, 20),  # Responsive font size
-                    color=text_color,
-                    font="Arial",
-                ).with_duration(duration)
+        # Label
+        try:
+            text_clip = TextClip(
+                labels_list[i],
+                font_size=min(small_card_width // 10, 16),
+                color=text_color,
+            ).with_duration(total_duration)
 
-                # Position text at bottom of card
-                text_x = x + (card_width - text_clip.size[0]) // 2
-                text_y = y + image_height + 15  # 15px below image
+            text_x = small_x + (small_card_width - text_clip.size[0]) // 2
+            text_y = small_y + small_card_height + 8
+            text_clip = text_clip.with_position((text_x, text_y))
+            static_clips.append(text_clip)
 
-                text_clip = text_clip.with_position((text_x, text_y))
-                clips.append(text_clip)
+        except Exception as e:
+            print(f"Error creating label {i}: {e}")
 
-            except Exception as e:
-                print(f"Error creating text label: {e}")
+    # Combine all clips
+    all_clips = [bg, main_shadow, main_card_bg] + slideshow_clips + static_clips
 
-    return CompositeVideoClip(clips)
+    return CompositeVideoClip(all_clips)

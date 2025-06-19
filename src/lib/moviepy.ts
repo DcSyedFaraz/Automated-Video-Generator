@@ -1,6 +1,8 @@
 // moviepy.ts
 import { spawn } from "child_process";
 import path from "node:path";
+import os from "os";
+import * as fs from "fs";
 
 export async function createVideo(params: {
   audioPath?: string; // optional “voice-over” audio
@@ -9,25 +11,68 @@ export async function createVideo(params: {
   enableTransitions?: boolean;
 }) {
   const { audioPath, imagePaths, outPath } = params;
-
-  const introPath = path.join(process.cwd(), "public", "intro.png");
-  const outroPath = path.join(process.cwd(), "public", "outro.png");
-  const musicPath = path.join(process.cwd(), "public", "background.mp3");
-  const script = path.join(process.cwd(), "scripts", "moviepy_create_video.py");
+  const cwd = process.cwd();
+  const script = path.join(cwd, "scripts", "moviepy_create_video.py");
   const pythonCmd = process.platform === "win32" ? "python" : "python3";
 
-  // build CLI args
+  // Prepare Whisper transcription if there's an audio track
+  let subtitlePath: string | undefined;
+  // if (audioPath) {
+  //   const whisperOutputDir = path.join(os.tmpdir(), "whisper_subs");
+  //   // Ensure directory exists
+  //   await fs.promises.mkdir(whisperOutputDir, { recursive: true });
+
+  //   console.log("📝 Transcribing audio with Whisper…");
+  //   await new Promise<void>((resolve, reject) => {
+  //     const w = spawn(pythonCmd, [
+  //       "-m",
+  //       "whisper",
+  //       audioPath,
+  //       "--model",
+  //       "small",
+  //       "--language",
+  //       "en",
+  //       "--output_format",
+  //       "srt",
+  //       "--output_dir",
+  //       whisperOutputDir,
+  //     ]);
+
+  //     w.stdout.on("data", (d) => process.stdout.write(d));
+  //     w.stderr.on("data", (d) => process.stderr.write(d));
+
+  //     w.on("close", (code) => {
+  //       if (code === 0) resolve();
+  //       else reject(new Error(`Whisper exited with code ${code}`));
+  //     });
+  //   });
+
+  //   // Whisper names the file <audioBasename>.srt
+  //   const base = path.basename(audioPath, path.extname(audioPath));
+  //   subtitlePath = path.join(whisperOutputDir, `${base}.srt`);
+  //   console.log(`✅ Generated subtitles at ${subtitlePath}`);
+  // }
+  subtitlePath = "C:\\Users\\faraz\\AppData\\Local\\Temp\\whisper_subs\\1750262314154-21m00Tcm4TlvDq8ikWAM.srt";
+
+  // Build the MoviePy CLI args
   const args = [script, "--output", outPath];
   if (audioPath) args.push("--audio", audioPath);
+  if (subtitlePath) args.push("--subtitles", subtitlePath);
+
+  // static assets
+  const introPath = path.join(cwd, "public", "intro.mp4");
+  const outroPath = path.join(cwd, "public", "end.jpeg");
+  const musicPath = path.join(cwd, "public", "background.mp3");
+
   if (musicPath) args.push("--music", musicPath);
   if (introPath) args.push("--intro", introPath);
   if (outroPath) args.push("--outro", outroPath);
-  args.push("--fps", "24"); // make fps explicit
-  args.push("--duration", "3"); // default image duration
-  // finally, your core images:
+
+  args.push("--fps", "24");
+  args.push("--duration", "3");
   args.push(...imagePaths);
 
-  console.log("🎬 Creating video with moviepy", pythonCmd, args);
+  console.log("🎬 Creating video with moviepy:", pythonCmd, args.join(" "));
   return new Promise<Response>((resolve) => {
     const proc = spawn(pythonCmd, args);
 

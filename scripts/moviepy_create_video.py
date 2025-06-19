@@ -7,8 +7,12 @@ import argparse
 import math
 import os
 import sys
+from moviepy.video.tools.subtitles import SubtitlesClip
+
 from moviepy import (
     ImageClip,
+    TextClip,
+    VideoFileClip,
     afx,
     AudioFileClip,
     concatenate_videoclips,
@@ -22,7 +26,7 @@ from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from scripts.function import create_image_grid
+from scripts.function import create_decory_slideshow, create_decory_slideshow_with_crossfade, create_image_grid
 
 # ────────────────────────────── CLI ──────────────────────────────
 parser = argparse.ArgumentParser(
@@ -52,8 +56,12 @@ parser.add_argument(
 parser.add_argument("--fps", type=int, default=24, help="frames per second")
 parser.add_argument("--output", required=True, help="output video path (e.g. out.mp4)")
 parser.add_argument("images", nargs="+", help="main image files (PNG, JPG, …)")
-parser.add_argument("--width", type=int, default=1024, help="output video width")
-parser.add_argument("--height", type=int, default=1024, help="output video height")
+parser.add_argument("--width", type=int, default=900, help="output video width")
+parser.add_argument("--height", type=int, default=1600, help="output video height")
+parser.add_argument(
+    "--subtitles",
+    help="Subtitles file (e.g. .srt) to overlay as captions",
+)
 parser.add_argument(
     "--transition-duration",
     type=float,
@@ -69,7 +77,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # ────────────────────────────── Constants ────────────────────────
-INTRO_DURATION = 2.0
+INTRO_DURATION = 3.0
 OUTRO_DURATION = 2.0
 num_images = len(args.images)
 if num_images == 0:
@@ -78,7 +86,8 @@ if num_images == 0:
 # ──────────────────────────── Timing logic ───────────────────────
 if args.audio:  # use voice‑over length
     vo_clip = AudioFileClip(args.audio)
-    total_time = vo_clip.duration
+    total_time = 5.0
+    # total_time = vo_clip.duration
     remaining_time = max(total_time - INTRO_DURATION - OUTRO_DURATION, 0)
     image_duration = remaining_time / num_images
 else:  # fall back to explicit --duration
@@ -89,8 +98,9 @@ else:  # fall back to explicit --duration
 # ─────────────────────────── Build video track ───────────────────
 clips = []
 
-if args.intro:
-    clips.append(ImageClip(args.intro).with_duration(INTRO_DURATION))
+# if args.intro:
+#     clips.append(VideoFileClip(args.intro).with_duration(INTRO_DURATION))
+    # clips.append(ImageClip(args.intro).with_duration(INTRO_DURATION))
 
 # for img in args.images:
 #     clip = ImageClip(img, duration=image_duration).resized(height=args.height)
@@ -98,41 +108,84 @@ if args.intro:
 
 
 # Create clips for each image, resized to fit the video dimensions
-grid_clip = create_image_grid(
-    images_list=args.images,  # Can be 5, 10, 15, or any number of images
+# grid_clip = create_image_grid(
+#     images_list=args.images,  # Can be 5, 10, 15, or any number of images
+#     video_width=args.width,
+#     video_height=args.height,
+#     duration=remaining_time,
+# )
+grid_clip = create_decory_slideshow(
+    slideshow_images=args.images,
+    static_images=[
+        "D:\\projects\\video-gen\\public\\output\\img_1750339337274_1.png",
+        "D:\\projects\\video-gen\\public\\output\\img_1750339337342_2.png",
+        "D:\\projects\\video-gen\\public\\output\\img_1750339337350_3.png",
+        "D:\\projects\\video-gen\\public\\output\\img_1750339337369_4.png",
+    ],
+    labels_list=["Minimal", "Futuristic", "Luxury", "Modern"],
     video_width=args.width,
     video_height=args.height,
-    duration=remaining_time,
+    total_duration=5,
+    # transition_duration=0.5,
 )
 
 clips.append(grid_clip)
 
-if args.outro:
-    clips.append(ImageClip(args.outro).with_duration(OUTRO_DURATION))
+# if args.outro:
+#     clips.append(ImageClip(args.outro).with_duration(OUTRO_DURATION))
 
-    # if args.transition_duration > 0:
-    #     from moviepy import CompositeVideoClip
+# if args.transition_duration > 0:
+#     from moviepy import CompositeVideoClip
 
-    #     transition = args.transition_duration
-    #     xf_clips = []
-    #     current = 0.0
-    #     for idx, clip in enumerate(clips):
-    #         # schedule each clip at its start time
-    #         clip = clip.with_start(current)
-    #         # fade in for every clip except the very first
-    #         if 0 < idx < len(clips) - 1:
-    #             clip = CrossFadeIn(transition).apply(clip)
-    #         xf_clips.append(clip)
-    #         # advance time by clip duration minus overlap
-    #         overlap = transition if idx < len(clips) - 1 else 0.0
-    #         current += clip.duration - overlap
+#     transition = args.transition_duration
+#     xf_clips = []
+#     current = 0.0
+#     for idx, clip in enumerate(clips):
+#         # schedule each clip at its start time
+#         clip = clip.with_start(current)
+#         # fade in for every clip except the very first
+#         if 0 < idx < len(clips) - 1:
+#             clip = CrossFadeIn(transition).apply(clip)
+#         xf_clips.append(clip)
+#         # advance time by clip duration minus overlap
+#         overlap = transition if idx < len(clips) - 1 else 0.0
+#         current += clip.duration - overlap
 
-    #     video = CompositeVideoClip(xf_clips).with_duration(current)
-    # else:
-    video = concatenate_videoclips(clips, method="compose")
+#     video = CompositeVideoClip(xf_clips).with_duration(current)
+# else:
+video = concatenate_videoclips(clips, method="compose")
 
 video = video.with_fps(args.fps)
 # video = video.resized(args.height, args.width)
+# ──────────────── Overlay subtitles if provided ────────────────
+if args.subtitles:
+    # Function to style each subtitle line
+    def make_text_clip(txt):
+        return TextClip(
+            text=txt,
+            font_size=25,
+            color="white",
+            stroke_color="black",
+            bg_color="black",
+            stroke_width=2,
+            method="caption",
+            text_align="center",
+            size=(args.width, None),  # Auto height based on width
+            # margin=(10, 0),  # Add some margin around the text
+            # ← no font=, no method=
+        )
+
+    # small bottom margin
+
+    # Load and generate the subtitles clip
+    subs = SubtitlesClip(args.subtitles, make_textclip=make_text_clip)
+
+    # Position subtitles at the bottom of the frame
+    subs = subs.with_position("center")
+
+    # Composite subtitles over the main video
+    video = CompositeVideoClip([video, subs.with_duration(video.duration)])
+
 # ─────────────────────────── Audio mixing ────────────────────────
 audio_tracks = []
 
@@ -153,16 +206,43 @@ if audio_tracks:
     final_audio = CompositeAudioClip(audio_tracks)
     video = video.with_audio(final_audio)
 
-threads = multiprocessing.cpu_count()
 # ─────────────────────────── Render ──────────────────────────────
+# video.write_videofile(
+#     args.output,
+#     codec="libx264",
+#     preset="ultrafast",
+#     audio_codec="aac",
+#     fps=args.fps,
+#     bitrate="4000k",
+#     temp_audiofile="temp-audio.m4a",
+#     remove_temp=True,
+# )
 video.write_videofile(
     args.output,
     codec="libx264",
     preset="ultrafast",
     audio_codec="aac",
     fps=args.fps,
-    bitrate="4000k",
-    threads=threads,
-    temp_audiofile="temp-audio.m4a",
+    bitrate="1000k",  # Very low bitrate
+    threads=0,
+    temp_audiofile="temp-audio.m4v",  # Different temp format
     remove_temp=True,
+    ffmpeg_params=[
+        "-crf",
+        "35",  # Much higher CRF
+        "-g",
+        "60",  # Larger GOP size
+        "-bf",
+        "0",  # No B-frames
+        "-refs",
+        "1",  # Single reference frame
+        "-me_method",
+        "dia",  # Diamond motion estimation (fastest)
+        "-subq",
+        "1",  # Lowest subpixel refinement
+        "-trellis",
+        "0",  # Disable trellis quantization
+        "-movflags",
+        "+faststart",
+    ],
 )

@@ -1,8 +1,10 @@
+// routes.ts
 import { NextRequest, NextResponse } from "next/server";
-import { editImage, generateImage } from "@/lib/imageGen";
+import { generateImages } from "@/lib/imageGen";
 import { tmpdir } from "os";
 import { join } from "path";
 import { writeFile, unlink } from "fs/promises";
+import { existsSync } from "fs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +13,7 @@ export async function POST(req: NextRequest) {
     const styles = Number(form.get("styles") ?? 1);
     const upload = form.get("baseImage") as File | null;
 
-    /*───────────── save the upload to /tmp (same as before) ─────────────*/
+    // 1) Handle optional upload as before
     let tmpPath: string | null = null;
     if (upload) {
       if (upload.type !== "image/png")
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
         );
       if (upload.size > 4 * 1024 * 1024)
         return NextResponse.json(
-          { error: "Max file size is 4 MB" },
+          { error: "Max file size is 4 MB" },
           { status: 413 }
         );
 
@@ -32,22 +34,40 @@ export async function POST(req: NextRequest) {
       await writeFile(tmpPath, Buffer.from(await upload.arrayBuffer()));
     }
 
-    /*───────────── generate or edit ─────────────*/
+    // 2) Generate Base64 strings
     const MAX_PER_REQ = 10;
     const batches: Promise<string[]>[] = [];
-
     for (let i = 0; i < styles; i += MAX_PER_REQ) {
       const n = Math.min(MAX_PER_REQ, styles - i);
-      batches.push(
-        tmpPath ? editImage(tmpPath!, prompt, n) : generateImage(prompt, n)
-      );
+      batches.push(generateImages(prompt, n, tmpPath ?? undefined));
+    }
+    const results = await Promise.all(batches);
+    const base64Images = results.flat();
+
+    // 3) Ensure output directory exists
+    const publicOutputDir = join(process.cwd(), "public", "output");
+    if (!existsSync(publicOutputDir)) {
+      await writeFile(publicOutputDir, ""); // mkdir -p behaviour
     }
 
-    const results = await Promise.all(batches);
-    const images = results.flat();
+    // 4) Decode and save each image, collect relative URLs
+    const relPaths: string[] = [];
+    for (let i = 0; i < base64Images.length; i++) {
+      const b64 = base64Images[i];
+      const filename = `img_${Date.now()}_${i}.png`;
+      const absPath = join(publicOutputDir, filename);
+      const buffer = Buffer.from(b64, "base64");
+      await writeFile(absPath, buffer);
+      relPaths.push(`/output/${filename}`);
+    }
 
-    if (tmpPath) await unlink(tmpPath).catch(() => {}); // clean up
-    return NextResponse.json({ images });
+    // 5) Cleanup tmp upload
+    if (tmpPath) {
+      await unlink(tmpPath).catch(() => {});
+    }
+
+    // 6) Return the public URLs to your frontend
+    return NextResponse.json({ images: relPaths });
   } catch (err: any) {
     console.error("Image route failed:", err);
     return NextResponse.json(

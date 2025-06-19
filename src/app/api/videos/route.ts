@@ -18,13 +18,18 @@ export async function POST(req: NextRequest) {
   const dir = path.join(process.cwd(), "public", "output");
   await fs.mkdir(dir, { recursive: true });
 
+  // const imagePaths: string[] = images.map((img: string) => {
+  //   // strip leading slash and join into your public/output folder
+  //   const rel = img.replace(/^\//, "");
+  //   return path.join(process.cwd(), "public", rel);
+  // });
   const imagePaths: string[] = [
-  'D:\\projects\\video-gen\\public\\output\\1750262303015-355335.png',
-  'D:\\projects\\video-gen\\public\\output\\1750262305532-313359.png',
-  'D:\\projects\\video-gen\\public\\output\\1750262307302-745602.png',
-  'D:\\projects\\video-gen\\public\\output\\1750262309800-304436.png',
-  'D:\\projects\\video-gen\\public\\output\\1750262312237-309484.png'
-];
+    "D:\\projects\\video-gen\\public\\output\\img_1750339337271_0.png",
+    "D:\\projects\\video-gen\\public\\output\\img_1750339337274_1.png",
+    "D:\\projects\\video-gen\\public\\output\\img_1750339337342_2.png",
+    "D:\\projects\\video-gen\\public\\output\\img_1750339337350_3.png",
+    "D:\\projects\\video-gen\\public\\output\\img_1750339337369_4.png",
+  ];
   // const imagePaths: string[] = [];
   // for (const url of images) {
   //   console.log(`Processing image URL: ${url}`);
@@ -81,9 +86,8 @@ export async function POST(req: NextRequest) {
 
   const urls: string[] = [];
   for (const scr of scriptList) {
-    console.log("Processing script:",scr, "with voices:", voiceList);
+    console.log("Processing script:", scr, "with voices:", voiceList);
     for (const vid of voiceList) {
-      
       const audioPath = path.join(
         dir,
         "1750262314154-21m00Tcm4TlvDq8ikWAM.mp3"

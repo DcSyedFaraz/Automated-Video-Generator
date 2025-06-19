@@ -260,7 +260,7 @@ export default function ImageUploader({
             ))}
           </div>
         </div>
-      ) : images.length > 0 ? (
+      ) : images?.length > 0 ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">
@@ -269,7 +269,7 @@ export default function ImageUploader({
             <p className="text-sm text-gray-600">{selected.size} selected</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {images.map((url, idx) => (
+            {images?.map((url, idx) => (
               <div
                 key={url}
                 className={`relative aspect-square cursor-pointer group transition-all duration-200 ${
