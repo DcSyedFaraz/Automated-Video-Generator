@@ -128,14 +128,14 @@ export default function Page() {
       )} */}
 
       {/* Image Generation & Selection */}
-      <ImageUploader
-        onGenerate={handleGenerateImages}
-        images={generatedImages}
-        onSelect={setSelectedImages}
-        loading={loading}
-      />
-      {/* {voiceIds.length > 0 && (
-      )} */}
+      {voiceIds.length > 0 && (
+        <ImageUploader
+          onGenerate={handleGenerateImages}
+          images={generatedImages}
+          onSelect={setSelectedImages}
+          loading={loading}
+        />
+      )}
 
       {/* Video Generation */}
       {selectedImages.length > 0 && (
@@ -146,13 +146,13 @@ export default function Page() {
       )}
 
       {/* Output */}
-      {videoUrls.length > 0 && (
+      {/* {videoUrls.length > 0 && (
         <div className="mt-6 grid gap-4">
           {videoUrls.map((u, i) => (
             <video key={i} src={u} controls className="mx-auto" />
           ))}
         </div>
-      )}
+      )} */}
     </div>
   );
 }

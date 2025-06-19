@@ -391,7 +391,7 @@ def build_cursor_clips(
     total_duration,
     slide_duration,
     click_sound,
-    cursor_size=(88, 88),
+    cursor_size=(120, 120),
 ):
     cw, ch = cursor_size
     half_w, half_h = cw // 2, ch // 2
@@ -424,11 +424,17 @@ def build_cursor_clips(
 
     video_clips = []
     audio_clips = []  # Separate list for audio clips
+    print("Click sound path:", click_sound)
+    print("File exists?", os.path.exists(click_sound))
+
     click_audio = (
         AudioFileClip(click_sound).with_effects([afx.MultiplyVolume(2.0)])
         if os.path.exists(click_sound)
         else None
     )
+
+    print("Click audio loaded?", click_audio is not None)
+
     num = len(positions)
 
     for i in range(num):
@@ -583,7 +589,6 @@ def create_decory_slideshow(
         total_duration,
         slide_dur,
         click_sound_path,
-        cursor_size=(24, 24),
     )
 
     # And update the CompositeVideoClip line:

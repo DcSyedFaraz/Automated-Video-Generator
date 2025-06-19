@@ -17,42 +17,42 @@ export async function createVideo(params: {
 
   // Prepare Whisper transcription if there's an audio track
   let subtitlePath: string | undefined;
-  // if (audioPath) {
-  //   const whisperOutputDir = path.join(os.tmpdir(), "whisper_subs");
-  //   // Ensure directory exists
-  //   await fs.promises.mkdir(whisperOutputDir, { recursive: true });
+  if (audioPath) {
+    const whisperOutputDir = path.join(os.tmpdir(), "whisper_subs");
+    // Ensure directory exists
+    await fs.promises.mkdir(whisperOutputDir, { recursive: true });
 
-  //   console.log("📝 Transcribing audio with Whisper…");
-  //   await new Promise<void>((resolve, reject) => {
-  //     const w = spawn(pythonCmd, [
-  //       "-m",
-  //       "whisper",
-  //       audioPath,
-  //       "--model",
-  //       "small",
-  //       "--language",
-  //       "en",
-  //       "--output_format",
-  //       "srt",
-  //       "--output_dir",
-  //       whisperOutputDir,
-  //     ]);
+    console.log("📝 Transcribing audio with Whisper…");
+    await new Promise<void>((resolve, reject) => {
+      const w = spawn(pythonCmd, [
+        "-m",
+        "whisper",
+        audioPath,
+        "--model",
+        "small",
+        "--language",
+        "en",
+        "--output_format",
+        "srt",
+        "--output_dir",
+        whisperOutputDir,
+      ]);
 
-  //     w.stdout.on("data", (d) => process.stdout.write(d));
-  //     w.stderr.on("data", (d) => process.stderr.write(d));
+      w.stdout.on("data", (d) => process.stdout.write(d));
+      w.stderr.on("data", (d) => process.stderr.write(d));
 
-  //     w.on("close", (code) => {
-  //       if (code === 0) resolve();
-  //       else reject(new Error(`Whisper exited with code ${code}`));
-  //     });
-  //   });
+      w.on("close", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`Whisper exited with code ${code}`));
+      });
+    });
 
-  //   // Whisper names the file <audioBasename>.srt
-  //   const base = path.basename(audioPath, path.extname(audioPath));
-  //   subtitlePath = path.join(whisperOutputDir, `${base}.srt`);
-  //   console.log(`✅ Generated subtitles at ${subtitlePath}`);
-  // }
-  subtitlePath = "C:\\Users\\faraz\\AppData\\Local\\Temp\\whisper_subs\\1750262314154-21m00Tcm4TlvDq8ikWAM.srt";
+    // Whisper names the file <audioBasename>.srt
+    const base = path.basename(audioPath, path.extname(audioPath));
+    subtitlePath = path.join(whisperOutputDir, `${base}.srt`);
+    console.log(`✅ Generated subtitles at ${subtitlePath}`);
+  }
+  // subtitlePath = "C:\\Users\\faraz\\AppData\\Local\\Temp\\whisper_subs\\1750262314154-21m00Tcm4TlvDq8ikWAM.srt";
 
   // Build the MoviePy CLI args
   const args = [script, "--output", outPath];

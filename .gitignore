@@ -42,4 +42,5 @@ next-env.d.ts
 /public/output
 /venv
 temp-audio.m4a
-scripts\__pycache__
+/scripts/__pycache__
+temp-audio.m4v
