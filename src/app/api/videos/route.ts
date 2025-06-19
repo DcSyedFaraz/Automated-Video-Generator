@@ -48,14 +48,14 @@ export async function POST(req: NextRequest) {
       console.log("Processing script:", scr, "with voices:", voiceList);
 
       for (const vid of voiceList) {
-        const audioPath = path.join(
-          dir,
-          "1750262314154-21m00Tcm4TlvDq8ikWAM.mp3"
-        );
-        // const audioPath = path.join(dir, `${Date.now()}-${vid}.mp3`);
-        // const audioBuf = await synthesize(vid, scr);
-        // console.log("Audio buffer length:", audioPath, audioBuf.length);
-        // await fs.writeFile(audioPath, audioBuf);
+        // const audioPath = path.join(
+        //   dir,
+        //   "1750262314154-21m00Tcm4TlvDq8ikWAM.mp3"
+        // );
+        const audioPath = path.join(dir, `${Date.now()}-${vid}.mp3`);
+        const audioBuf = await synthesize(vid, scr);
+        console.log("Audio buffer length:", audioPath, audioBuf.length);
+        await fs.writeFile(audioPath, audioBuf);
 
         const outPath = path.join(dir, `${Date.now()}-${vid}.mp4`);
 
