@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Automated Video Generator
 
-## Getting Started
+This project creates marketing videos by combining OpenAI for script and image generation with ElevenLabs for speech synthesis. Images and audio are assembled into a final MP4 using MoviePy and FFmpeg.
 
-First, run the development server:
+## Requirements
 
+- Node.js 18 or newer
+- Python 3.8 or newer
+- FFmpeg installed and available in your `PATH`
+
+## Installation
+
+1. Install Node dependencies:
+   ```bash
+   npm install
+   ```
+2. Create a Python virtual environment and install packages:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   pip install -r requirements.txt
+   ```
+3. Copy `.env.example` to `.env` and provide your API keys.
+
+### Environment variables
+
+- `OPENAI_API_KEY` – OpenAI API key used for text and image generation.
+- `ELEVENLABS_API_KEY` – ElevenLabs API key for text‑to‑speech.
+- `BASE_URL` – Base URL where the app is served (e.g. `http://localhost:3000`).
+
+## Running the development server
+
+Start the Next.js dev server:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+Then open `http://localhost:3000` in your browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Generating videos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Use the web interface to generate voice‑over scripts from a marketing prompt.
+2. Upload an image to create styled variations via DALL·E.
+3. Select the desired voice and images, then click **Generate Video**. The resulting MP4 files are saved under `public/output`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
