@@ -1,19 +1,31 @@
-import { NextRequest } from 'next/server';
-import { progressEmitter } from '@/lib/progressEmitter';
+import { NextRequest } from "next/server";
+import { progressEmitter } from "@/lib/progressEmitter";
 
 export async function GET(req: NextRequest) {
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     start(controller) {
-      const send = (msg: string) => {
-        controller.enqueue(encoder.encode(`data: ${msg}\n\n`));
-      };
-      const handler = (msg: string) => send(msg);
-      progressEmitter.on('log', handler);
+      const handler = (ev: unknown) => {
+        const msg = String(ev);
+        console.log(`msg msg: ${msg}`);
+        for (const line of msg.split(/\r?\n/)) {
+          // console.log(`Progress log: ${line}`);
 
-      req.signal.addEventListener('abort', () => {
-        progressEmitter.off('log', handler);
+          controller.enqueue(encoder.encode(`data: ${line}\n`));
+        }
+        controller.enqueue(encoder.encode("\n"));
+      };
+
+      progressEmitter.on("log", handler);
+
+      progressEmitter.once("end", () => {
+        progressEmitter.off("log", handler); // remove progress listener
+        controller.close(); // EOF
+      });
+
+      req.signal.addEventListener("abort", () => {
+        progressEmitter.off("log", handler);
         controller.close();
       });
     },
@@ -21,9 +33,9 @@ export async function GET(req: NextRequest) {
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
     },
   });
 }

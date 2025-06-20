@@ -435,16 +435,15 @@ def build_cursor_clips(
 
     video_clips = []
     audio_clips = []  # Separate list for audio clips
-    print("Click sound path:", click_sound)
-    print("File exists?", os.path.exists(click_sound))
+    # print("Click sound path:", click_sound)
+    # print("File exists?", os.path.exists(click_sound))
 
     click_audio = (
-        AudioFileClip(click_sound).with_effects([afx.MultiplyVolume(2.0)])
-        if os.path.exists(click_sound)
-        else None
+        AudioFileClip(click_sound)
+        # .with_effects([afx.MultiplyVolume(2.0)])
     )
 
-    print("Click audio loaded?", click_audio is not None)
+    # print("Click audio loaded?", click_audio is not None)
 
     num = len(positions)
 
@@ -473,6 +472,7 @@ def build_cursor_clips(
         if click_audio:
             # make sure this slice is only 0.2s long
             press = press.with_audio(click_audio.subclipped(0, 0.2))
+            # print("press", press.audio)
         video_clips.append(press)
 
         # Click sound - add to separate audio list

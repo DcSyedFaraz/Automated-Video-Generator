@@ -86,12 +86,12 @@ export async function createVideo(params: {
 
     proc.stdout.on("data", (d) => {
       const msg = d.toString();
-      console.log(msg);
-      progressEmitter.emit("log", msg);
+      console.log(msg, "test");
+      // progressEmitter.emit("log", msg);
     });
     proc.stderr.on("data", (d) => {
-      const msg = d.toString();
-      console.error(msg);
+      const msg = d.toString().trimStart();
+      console.error(msg, "testerror");
       progressEmitter.emit("log", msg);
     });
 

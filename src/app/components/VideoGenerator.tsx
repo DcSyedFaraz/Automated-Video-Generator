@@ -36,18 +36,25 @@ export default function VideoGenerator({
     setProcessingStage("Starting generation...");
 
     const es = new EventSource("/api/videos/progress");
+    // progressEmitter.on("log", handler);
     es.onmessage = (e) => {
       const msg = e.data as string;
+      // console.log("Progress update:", msg, e);
+
       setLogs((prev) => [...prev, msg]);
 
       setProcessingStage(msg);
+      // console.log("Processing stage:", msg);
 
       const m = msg.match(/(\d+(?:\.\d+)?)%/);
       if (m) {
         setProgress(parseFloat(m[1]));
       }
     };
-    es.onerror = () => es.close();
+    es.onerror = (err) => {
+      console.error("EventSource error:", err);
+      es.close();
+    };
 
     await onGenerate();
     es.close();
@@ -97,7 +104,7 @@ export default function VideoGenerator({
 
           {/* Log output */}
           {logs.length > 0 && (
-            <pre className="text-left text-xs bg-gray-100 p-3 rounded-md max-h-40 overflow-y-auto mt-4 whitespace-pre-wrap">
+            <pre className="text-left text-black text-xs bg-gray-100 p-3 rounded-md max-h-40 overflow-y-auto mt-4 whitespace-pre-wrap">
               {logs.join("\n")}
             </pre>
           )}
@@ -264,4 +271,7 @@ export default function VideoGenerator({
       </div>
     </div>
   );
+}
+function handler(...args: any[]): void {
+  throw new Error("Function not implemented.");
 }

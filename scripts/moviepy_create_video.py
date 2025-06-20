@@ -158,30 +158,54 @@ video = concatenate_videoclips(clips, method="compose")
 video = video.with_fps(args.fps)
 # video = video.resized(args.height, args.width)
 # ──────────────── Overlay subtitles if provided ────────────────
+from moviepy.video.fx.Margin import Margin
+from PIL import Image, ImageDraw
+import numpy as np
+
 if args.subtitles:
-    # Function to style each subtitle line
-    def make_text_clip(txt):
-        return TextClip(
+    # Alternative with background box styling
+    def make_text_clip_rounded(txt, corner_radius=20, padding=20):
+        # Create the text without background first
+        text_clip = TextClip(
             text=txt,
-            font_size=45,
+            font_size=46,
             color="white",
             stroke_color="black",
-            bg_color="black",
-            stroke_width=2,
+            stroke_width=1,
             method="caption",
             text_align="center",
-            size=(args.width, None),  # Auto height based on width
-            # margin=(10, 0),  # Add some margin around the text
-            # ← no font=, no method=
+            size=(780, None),
+            interline=-3,
         )
 
-    # small bottom margin
+        # Get text dimensions
+        w, h = text_clip.size
+
+        # Create rounded rectangle background using PIL
+        bg_width = w + (padding * 2)
+        bg_height = h + (padding * 2)
+
+        img = Image.new("RGBA", (bg_width, bg_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.rounded_rectangle(
+            [(0, 0), (bg_width - 1, bg_height - 1)],
+            radius=corner_radius,
+            fill=(0, 0, 0, 200),  # Semi-transparent black (200/255 opacity)
+        )
+
+        # Convert PIL image to ImageClip
+        bg_clip = ImageClip(np.array(img))
+
+        # Composite text over rounded background
+        return CompositeVideoClip(
+            [bg_clip, text_clip.with_position("center")], size=(bg_width, bg_height)
+        )
 
     # Load and generate the subtitles clip
-    subs = SubtitlesClip(args.subtitles, make_textclip=make_text_clip)
+    subs = SubtitlesClip(args.subtitles, make_textclip=make_text_clip_rounded)
 
-    # Position subtitles at the bottom of the frame
-    subs = subs.with_position("center")
+    # Position subtitles at the bottom with some margin from edge
+    subs = subs.with_position(("center"))
 
     # Composite subtitles over the main video
     video = CompositeVideoClip([video, subs.with_duration(video.duration)])
@@ -203,6 +227,8 @@ if args.music:
     audio_tracks.append(bgm)
 
 if audio_tracks:
+    if video.audio:  # <- bring the cursor clicks along
+        audio_tracks.insert(0, video.audio)
     final_audio = CompositeAudioClip(audio_tracks)
     video = video.with_audio(final_audio)
 
