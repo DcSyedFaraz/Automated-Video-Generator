@@ -5,9 +5,11 @@ import os from "os";
 import * as fs from "fs";
 import { progressEmitter } from "./progressEmitter";
 
+const USE_FAKE_DATA = process.env.USE_FAKE_DATA === "true";
+
 export async function createVideo(params: {
   audioPath?: string; // optional “voice-over” audio
-  imagePaths: string[]; // your main sequence
+  imagePaths: string[];
   outPath: string;
   enableTransitions?: boolean;
 }) {
@@ -18,8 +20,11 @@ export async function createVideo(params: {
 
   // Prepare Whisper transcription if there's an audio track
   let subtitlePath: string | undefined;
-  if (audioPath) {
-    const whisperOutputDir = path.join(os.tmpdir(), "whisper_subs");
+  if (USE_FAKE_DATA) {
+    subtitlePath =
+      "C:\\Users\\faraz\\AppData\\Local\\Temp\\whisper_subs\\1750262314154-21m00Tcm4TlvDq8ikWAM.srt";
+  } else if (audioPath) {
+    const whisperOutputDir = path.join(cwd, "public", "output", "whisper_subs");
     // Ensure directory exists
     await fs.promises.mkdir(whisperOutputDir, { recursive: true });
 
@@ -53,7 +58,9 @@ export async function createVideo(params: {
     subtitlePath = path.join(whisperOutputDir, `${base}.srt`);
     console.log(`✅ Generated subtitles at ${subtitlePath}`);
   }
-  // subtitlePath = "C:\\Users\\faraz\\AppData\\Local\\Temp\\whisper_subs\\1750262314154-21m00Tcm4TlvDq8ikWAM.srt";
+
+  subtitlePath =
+    "C:\\Users\\faraz\\AppData\\Local\\Temp\\whisper_subs\\1750262314154-21m00Tcm4TlvDq8ikWAM.srt";
 
   // Build the MoviePy CLI args
   const args = [script, "--output", outPath];

@@ -19,6 +19,8 @@ export default function Page() {
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
 
+  const USE_FAKE_DATA = process.env.NEXT_PUBLIC_USE_FAKE_DATA === "true";
+
   function handleUseScript(script: string) {
     setScripts([script]);
     setSelectedScripts([script]);
@@ -66,20 +68,29 @@ export default function Page() {
   }
 
   async function handleGenerateVideo() {
-    setVideoLoading(true);
-    // Basic validation
-    if (!selectedScripts.length || !voiceIds.length || !selectedImages.length) {
-      return;
-    }
 
-    // Validate selected images count
-    const validImageCounts = [5, 10, 15, 20, 25];
-    if (!validImageCounts.includes(selectedImages.length)) {
-      // You can customize this error handling based on your UI needs
-      alert(
-        `Please select exactly 5, 10, 15, 20, or 25 images. Currently selected: ${selectedImages.length}`
-      );
-      return;
+    console.log("Generating video with:", USE_FAKE_DATA);
+     setVideoLoading(true);
+    if (!USE_FAKE_DATA) {
+      // Basic validation
+      if (
+        !selectedScripts.length ||
+        !voiceIds.length ||
+        !selectedImages.length
+      ) {
+        return;
+      }
+
+
+      // Validate selected images count
+      const validImageCounts = [5, 10, 15, 20, 25];
+      if (!validImageCounts.includes(selectedImages.length)) {
+        // You can customize this error handling based on your UI needs
+        alert(
+          `Please select exactly 5, 10, 15, 20, or 25 images. Currently selected: ${selectedImages.length}`
+        );
+        return;
+      }
     }
 
     try {
@@ -142,7 +153,7 @@ export default function Page() {
       )}
 
       {/* Video Generation */}
-      {selectedImages.length > 0 && (
+      {(selectedImages.length > 0 || USE_FAKE_DATA) && (
         <VideoGenerator
           onGenerate={handleGenerateVideo}
           videoUrls={videoUrls}
