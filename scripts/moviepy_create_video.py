@@ -28,9 +28,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from scripts.function import (
     create_decory_slideshow,
-    create_decory_slideshow_with_crossfade,
-    create_image_grid,
 )
+
+USE_FAKE_DATA = os.getenv("USE_FAKE_DATA", "false").lower() == "true"
+
 
 # ────────────────────────────── CLI ──────────────────────────────
 parser = argparse.ArgumentParser(
@@ -90,8 +91,7 @@ if num_images == 0:
 # ──────────────────────────── Timing logic ───────────────────────
 if args.audio:  # use voice‑over length
     vo_clip = AudioFileClip(args.audio)
-    # total_time = 15.0
-    total_time = vo_clip.duration
+    total_time = 10.0 if USE_FAKE_DATA else vo_clip.duration
     remaining_time = max(total_time - INTRO_DURATION - OUTRO_DURATION, 0)
     image_duration = remaining_time / num_images
 else:  # fall back to explicit --duration

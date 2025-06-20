@@ -1,5 +1,8 @@
 import math
 import os
+from PIL import Image, ImageDraw
+import numpy as np
+
 from moviepy import (
     AudioFileClip,
     ColorClip,
@@ -391,23 +394,31 @@ def build_cursor_clips(
     total_duration,
     slide_duration,
     click_sound,
-    cursor_size=(120, 120),
+    cursor_size=(60, 60),
 ):
     cw, ch = cursor_size
     half_w, half_h = cw // 2, ch // 2
 
+    diameter = min(cursor_size)
+
+    # draw with PIL
+    img = Image.new("RGBA", (diameter, diameter), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    draw.ellipse((0, 0, diameter, diameter), fill=(255, 255, 255, 255))
+
     # Load cursor icon
-    icon = (
-        ImageClip(cursor_icon_path).resized(cursor_size).with_duration(total_duration)
-    )
+    icon = ImageClip(np.array(img)).resized(cursor_size).with_duration(total_duration)
+    # icon = (
+    #     ImageClip(cursor_icon_path).resized(cursor_size).with_duration(total_duration)
+    # )
     # Optional glow outline
     try:
         outline = (
             ColorClip(size=cursor_size, color=(255, 255, 255))
-            .set_mask(icon.mask)
-            .with_opacity(0.2)
             .resized(1.2)
+            .with_opacity(0.2)
             .with_duration(total_duration)
+            .with_mask(icon.mask)
         )
     except Exception:
         outline = icon
@@ -459,6 +470,9 @@ def build_cursor_clips(
             .resized(lambda t: 1 - 0.1 * ease(t / 0.2))
             .with_position((curr_pos[0] - half_w, curr_pos[1] - half_h))
         )
+        if click_audio:
+            # make sure this slice is only 0.2s long
+            press = press.with_audio(click_audio.subclipped(0, 0.2))
         video_clips.append(press)
 
         # Click sound - add to separate audio list
