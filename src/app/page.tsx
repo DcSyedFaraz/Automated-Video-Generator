@@ -16,6 +16,7 @@ export default function Page() {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
 
   function handleUseScript(script: string) {
@@ -65,6 +66,7 @@ export default function Page() {
   }
 
   async function handleGenerateVideo() {
+    setVideoLoading(true);
     // Basic validation
     if (!selectedScripts.length || !voiceIds.length || !selectedImages.length) {
       return;
@@ -101,6 +103,8 @@ export default function Page() {
       console.error("Error generating video:", error);
       // Handle error appropriately for your UI
       alert("Failed to generate video. Please try again.");
+    } finally {
+      setVideoLoading(false);
     }
   }
 
@@ -142,6 +146,7 @@ export default function Page() {
         <VideoGenerator
           onGenerate={handleGenerateVideo}
           videoUrls={videoUrls}
+          loading={videoLoading}
         />
       )}
 

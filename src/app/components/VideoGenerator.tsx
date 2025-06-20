@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 interface VideoGeneratorProps {
-  onGenerate: () => void;
+  onGenerate: () => Promise<void>;
   videoUrls: string[];
   loading?: boolean;
 }
@@ -23,45 +23,34 @@ export default function VideoGenerator({
   videoUrls,
   loading = false,
 }: VideoGeneratorProps) {
-  const [processingStage, setProcessingStage] =
-    useState<string>("Initializing...");
+  const [processingStage, setProcessingStage] = useState<string>("Idle");
   const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState<string[]>([]);
 
-  // Simulate processing stages
-  const processingStages = [
-    "Initializing video generation...",
-    "Processing scripts and voices...",
-    "Generating visual content...",
-    "Synchronizing audio and video...",
-    "Applying final touches...",
-    "Almost ready!",
-  ];
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (loading) return;
 
-    // Simulate processing stages
+    setLogs([]);
     setProgress(0);
-    setProcessingStage(processingStages[0]);
+    setProcessingStage("Starting generation...");
 
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + 16.67; // 100/6 stages
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
+    const es = new EventSource("/api/videos/progress");
+    es.onmessage = (e) => {
+      const msg = e.data as string;
+      setLogs((prev) => [...prev, msg]);
 
-        const stageIndex = Math.floor(newProgress / 16.67);
-        if (stageIndex < processingStages.length) {
-          setProcessingStage(processingStages[stageIndex]);
-        }
+      setProcessingStage(msg);
 
-        return newProgress;
-      });
-    }, 2000);
+      const m = msg.match(/(\d+(?:\.\d+)?)%/);
+      if (m) {
+        setProgress(parseFloat(m[1]));
+      }
+    };
+    es.onerror = () => es.close();
 
-    onGenerate();
+    await onGenerate();
+    es.close();
   };
 
   if (loading) {
@@ -105,6 +94,13 @@ export default function VideoGenerator({
             Estimated time remaining:{" "}
             {Math.max(1, Math.ceil((100 - progress) / 20))} minutes
           </p>
+
+          {/* Log output */}
+          {logs.length > 0 && (
+            <pre className="text-left text-xs bg-gray-100 p-3 rounded-md max-h-40 overflow-y-auto mt-4 whitespace-pre-wrap">
+              {logs.join("\n")}
+            </pre>
+          )}
         </div>
       </div>
     );
