@@ -3,6 +3,7 @@ import { spawn } from "child_process";
 import path from "node:path";
 import os from "os";
 import * as fs from "fs";
+import { progressEmitter } from "./progressEmitter";
 
 const USE_FAKE_DATA = process.env.USE_FAKE_DATA === "true";
 
@@ -83,8 +84,16 @@ export async function createVideo(params: {
   return new Promise<Response>((resolve) => {
     const proc = spawn(pythonCmd, args);
 
-    proc.stdout.on("data", (d) => console.log(d.toString()));
-    proc.stderr.on("data", (d) => console.error(d.toString()));
+    proc.stdout.on("data", (d) => {
+      const msg = d.toString();
+      console.log(msg);
+      progressEmitter.emit("log", msg);
+    });
+    proc.stderr.on("data", (d) => {
+      const msg = d.toString();
+      console.error(msg);
+      progressEmitter.emit("log", msg);
+    });
 
     proc.on("close", (code) => {
       if (code === 0) {

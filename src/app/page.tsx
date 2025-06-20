@@ -16,6 +16,7 @@ export default function Page() {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
 
   const USE_FAKE_DATA = process.env.NEXT_PUBLIC_USE_FAKE_DATA === "true";
@@ -67,8 +68,9 @@ export default function Page() {
   }
 
   async function handleGenerateVideo() {
+
     console.log("Generating video with:", USE_FAKE_DATA);
-    
+     setVideoLoading(true);
     if (!USE_FAKE_DATA) {
       // Basic validation
       if (
@@ -78,6 +80,7 @@ export default function Page() {
       ) {
         return;
       }
+
 
       // Validate selected images count
       const validImageCounts = [5, 10, 15, 20, 25];
@@ -111,6 +114,8 @@ export default function Page() {
       console.error("Error generating video:", error);
       // Handle error appropriately for your UI
       alert("Failed to generate video. Please try again.");
+    } finally {
+      setVideoLoading(false);
     }
   }
 
@@ -152,6 +157,7 @@ export default function Page() {
         <VideoGenerator
           onGenerate={handleGenerateVideo}
           videoUrls={videoUrls}
+          loading={videoLoading}
         />
       )}
 
