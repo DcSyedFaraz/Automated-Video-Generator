@@ -59,8 +59,6 @@ export async function createVideo(params: {
     console.log(`✅ Generated subtitles at ${subtitlePath}`);
   }
 
-  subtitlePath =
-    "C:\\Users\\faraz\\AppData\\Local\\Temp\\whisper_subs\\1750262314154-21m00Tcm4TlvDq8ikWAM.srt";
 
   // Build the MoviePy CLI args
   const args = [script, "--output", outPath];
